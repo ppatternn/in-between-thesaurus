@@ -6,6 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearButton = document.getElementById('clear-button');
     const tilesContainer = document.getElementById('tiles-container');
     const tokensContainer = document.getElementById('tokens-container');
+    const apiSelector = document.getElementById('api-selector');
+    const settingsIcon = document.querySelector('.settings-icon');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeButton = document.querySelector('.close-button');
+    const saveSettingsButton = document.getElementById('save-settings');
+    const userApiKeyInput = document.getElementById('user-api-key');
 
     // Predefined list of distinct colors
     const colorPalette = [
@@ -24,6 +30,46 @@ document.addEventListener('DOMContentLoaded', () => {
     let tokenColorMap = {}; // Maps token to its assigned color
     let synonymMap = {};    // Maps synonym to Set of tokens it belongs to
     let usedColors = 0;     // Tracks the number of colors used
+    let selectedAPI = 'merriam-webster'; // Default API is Merriam-Webster
+    let merriamWebsterAPIKey = 'bbb28740-d72c-46d7-8eac-b62c9dbc24cf'; // Baked-in API key
+    let userProvidedAPIKey = ''; // To store user-provided API key
+
+    // Event listener for API selection
+    apiSelector.addEventListener('change', () => {
+        selectedAPI = apiSelector.value;
+        // No API key input section to show/hide since it's removed
+        // If using a backend or any other method, handle accordingly
+    });
+
+    // Event listener for Settings Icon to open modal
+    settingsIcon.addEventListener('click', () => {
+        settingsModal.style.display = 'block';
+    });
+
+    // Event listener for Close Button
+    closeButton.addEventListener('click', () => {
+        settingsModal.style.display = 'none';
+    });
+
+    // Event listener for clicking outside the modal to close it
+    window.addEventListener('click', (event) => {
+        if (event.target == settingsModal) {
+            settingsModal.style.display = 'none';
+        }
+    });
+
+    // Event listener for Save Settings Button
+    saveSettingsButton.addEventListener('click', () => {
+        userProvidedAPIKey = userApiKeyInput.value.trim();
+        if (userProvidedAPIKey !== '') {
+            merriamWebsterAPIKey = userProvidedAPIKey;
+            alert('API Key updated successfully!');
+            settingsModal.style.display = 'none';
+            userApiKeyInput.value = '';
+        } else {
+            alert('Please enter a valid API Key.');
+        }
+    });
 
     // Event listener for the search button
     searchButton.addEventListener('click', () => {
@@ -94,16 +140,22 @@ document.addEventListener('DOMContentLoaded', () => {
         tokensContainer.appendChild(tokenDiv);
     }
 
-    // Function to fetch synonyms using Datamuse API
+    // Function to fetch synonyms using the selected API
     async function fetchSynonyms(word) {
-        console.log(`Fetching synonyms for: "${word}"`);
+        console.log(`Fetching synonyms for: "${word}" using ${selectedAPI} API`);
         try {
-            const response = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}&max=10`);
-            if (!response.ok) {
-                throw new Error(`Error fetching synonyms for "${word}": ${response.statusText}`);
+            let data = [];
+            if (selectedAPI === 'datamuse') {
+                data = await fetchDatamuseSynonyms(word);
+            } else if (selectedAPI === 'merriam-webster') {
+                data = await fetchMerriamWebsterSynonyms(word);
             }
-            const data = await response.json();
-            console.log(`Synonyms for "${word}":`, data);
+
+            if (data.length === 0) {
+                console.log(`No synonyms found for "${word}"`);
+                return;
+            }
+
             mapSynonyms(word, data);
         } catch (error) {
             console.error(error);
@@ -111,17 +163,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Function to fetch synonyms from Datamuse API
+    async function fetchDatamuseSynonyms(word) {
+        const response = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}&max=10`);
+        if (!response.ok) {
+            throw new Error(`Datamuse API Error for "${word}": ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log(`Datamuse synonyms for "${word}":`, data);
+        return data.map(item => item.word);
+    }
+
+    // Function to fetch synonyms from Merriam-Webster Thesaurus API
+    async function fetchMerriamWebsterSynonyms(word) {
+        const response = await fetch(`https://www.dictionaryapi.com/api/v3/references/thesaurus/json/${encodeURIComponent(word)}?key=${merriamWebsterAPIKey}`);
+        if (!response.ok) {
+            throw new Error(`Merriam-Webster API Error for "${word}": ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log(`Merriam-Webster synonyms for "${word}":`, data);
+
+        // Merriam-Webster API may return suggestions if the word is not found
+        if (typeof data[0] === 'string') {
+            console.log(`No direct synonyms found for "${word}". Suggestions:`, data);
+            return [];
+        }
+
+        // Extract synonyms from the API response
+        let synonyms = [];
+        data.forEach(entry => {
+            if (entry.meta && entry.meta.syns) {
+                entry.meta.syns.forEach(synSet => {
+                    synonyms = synonyms.concat(synSet);
+                });
+            }
+        });
+
+        // Remove duplicates and limit to 10 synonyms
+        synonyms = [...new Set(synonyms)].slice(0, 10);
+        console.log(`Extracted Merriam-Webster synonyms for "${word}":`, synonyms);
+        return synonyms;
+    }
+
     // Function to map synonyms to their associated tokens
     function mapSynonyms(originalWord, synonyms) {
         const originalWordLower = originalWord.toLowerCase();
         synonyms.forEach(syn => {
-            const synLower = syn.word.toLowerCase();
+            const synLower = syn.toLowerCase();
             if (!synonymMap[synLower]) {
                 synonymMap[synLower] = new Set();
             }
             synonymMap[synLower].add(originalWordLower);
         });
-        console.log(`Mapped synonyms for "${originalWord}":`, synonyms.map(s => s.word));
+        console.log(`Mapped synonyms for "${originalWord}":`, synonyms);
     }
 
     // Function to create synonym tiles based on the synonymMap
@@ -212,6 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
         tokenColorMap = {};
         synonymMap = {};
         usedColors = 0;
+        merriamWebsterAPIKey = 'bbb28740-d72c-46d7-8eac-b62c9dbc24cf'; // Reset to default API key
+        userProvidedAPIKey = '';
         console.log('Cleared all tokens and tiles.');
     }
 });

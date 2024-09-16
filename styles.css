@@ -13,9 +13,26 @@ body {
     padding: 20px;
 }
 
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 h1 {
     text-align: center;
     color: #333;
+}
+
+.settings-icon {
+    cursor: pointer;
+    font-size: 24px;
+    color: #333;
+    transition: color 0.3s;
+}
+
+.settings-icon:hover {
+    color: #1f77b4; /* Change color on hover */
 }
 
 .input-section {
@@ -52,6 +69,56 @@ h1 {
     background-color: #333;
 }
 
+/* Description Section Styling */
+.description {
+    max-width: 700px;
+    margin: 0 auto 20px auto;
+    padding: 15px;
+    background-color: #ffffff;
+    border-left: 5px solid #1f77b4; /* Accent color matching the first token color */
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.description p {
+    margin: 0;
+    color: #555;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+.description p strong {
+    color: #1f77b4; /* Highlighting the tool's name with the first token color */
+}
+
+/* API Selection Section Styling */
+.api-selection {
+    max-width: 700px;
+    margin: 0 auto 20px auto;
+    padding: 10px 15px;
+    background-color: #ffffff;
+    border-left: 5px solid #17becf; /* Accent color for API selection */
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.api-selection label {
+    margin-right: 10px;
+    font-weight: bold;
+    color: #333;
+}
+
+#api-selector {
+    padding: 8px;
+    font-size: 16px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    outline: none;
+}
+
+/* Removed API Key Input Section Styling */
+
+/* Tokens and Tiles */
 .tokens-container {
     display: flex;
     flex-wrap: wrap;
@@ -87,6 +154,9 @@ h1 {
     font-weight: bold;
     text-align: center;
     min-width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tile:hover {
@@ -99,6 +169,81 @@ h1 {
     cursor: default;
 }
 
+/* Modal Styling */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto; /* 10% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px; /* Could be more or less, depending on screen size */
+    border-radius: 4px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+}
+
+/* Settings Modal Elements */
+#settings-modal h2 {
+    margin-top: 0;
+}
+
+#settings-modal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+#user-api-key {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    outline: none;
+    margin-bottom: 15px;
+}
+
+#save-settings {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    background-color: #1f77b4;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+#save-settings:hover {
+    background-color: #155a8a;
+}
+
 @media (max-width: 600px) {
     #search-input {
         width: 60%;
@@ -106,18 +251,4 @@ h1 {
 
     #search-button,
     #clear-button {
-        padding: 10px;
-        font-size: 14px;
-    }
-
-    .tile {
-        padding: 8px 12px;
-        font-size: 14px;
-        min-width: 80px;
-    }
-
-    .token {
-        padding: 4px 8px;
-        font-size: 14px;
-    }
-}
+        padding:

@@ -6,10 +6,19 @@
     <title>In Between Thesaurus</title>
     <!-- Link to styles.css -->
     <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome for Settings Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>In Between Thesaurus</h1>
+        <header>
+            <h1>In Between Thesaurus</h1>
+            <!-- Settings Icon -->
+            <div class="settings-icon">
+                <i class="fas fa-cog"></i>
+            </div>
+        </header>
+        
         <div class="input-section">
             <input type="text" id="search-input" placeholder="Enter words separated by spaces..." />
             <button id="search-button">Search</button>
@@ -19,17 +28,38 @@
         <!-- Description Section -->
         <div class="description">
             <p>
-                Welcome to <strong>In Between Thesaurus</strong>! Enter multiple words separated by spaces to discover their synonyms. 
-                Each word you input is highlighted with a unique color. Synonyms are displayed as clickable tiles colored to match their respective words.
-                If a synonym is shared among multiple words, its tile will feature a split color background indicating its association. 
-                Click on a synonym tile to add it to your search and explore further!
+                Each word you input is highlighted with a unique color. Synonyms are displayed as <strong>clickable tiles</strong> colored to match their respective words.
+                If a synonym is <strong>shared</strong> among multiple words, its tile will feature a split color background indicating its association. 
+                Click on a synonym tile to add it to your search.
             </p>
         </div>
+        
+        <!-- API Selection Section -->
+        <div class="api-selection">
+            <label for="api-selector">Choose Thesaurus API:</label>
+            <select id="api-selector">
+                <option value="merriam-webster" selected>Merriam-Webster Thesaurus API</option>
+                <option value="datamuse">Datamuse API</option>
+            </select>
+        </div>
+        
+        <!-- Removed API Key Input Section Below API Selection -->
         
         <div id="tokens-container" class="tokens-container"></div>
         <div id="tiles-container" class="tiles-container"></div>
     </div>
-
+    
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Settings</h2>
+            <label for="user-api-key">Custom Merriam-Webster API Key:</label>
+            <input type="text" id="user-api-key" placeholder="Enter your own API Key if mine is down" />
+            <button id="save-settings">Save</button>
+        </div>
+    </div>
+    
     <!-- Link to script.js -->
     <script src="script.js"></script>
 </body>
