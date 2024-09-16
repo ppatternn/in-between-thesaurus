@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In Between Thesaurus</title>
+    <!-- Link to styles.css -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>In Between Thesaurus</h1>
+        <div class="input-section">
+            <input type="text" id="search-input" placeholder="Enter words separated by spaces..." />
+            <button id="search-button">Search</button>
+            <button id="clear-button">Clear</button>
+        </div>
+        
+        <!-- Description Section -->
+        <div class="description">
+            <p>
+                Welcome to <strong>In Between Thesaurus</strong>! Enter multiple words separated by spaces to discover their synonyms. 
+                Each word you input is highlighted with a unique color. Synonyms are displayed as clickable tiles colored to match their respective words.
+                If a synonym is shared among multiple words, its tile will feature a split color background indicating its association. 
+                Click on a synonym tile to add it to your search and explore further!
+            </p>
+        </div>
+        
+        <div id="tokens-container" class="tokens-container"></div>
+        <div id="tiles-container" class="tiles-container"></div>
+    </div>
+
+    <!-- Link to script.js -->
+    <script src="script.js"></script>
+</body>
+</html>
