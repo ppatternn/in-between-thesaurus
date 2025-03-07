@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedAPI = 'merriam-webster'; // Default API is Merriam-Webster
     let merriamWebsterAPIKey = 'bbb28740-d72c-46d7-8eac-b62c9dbc24cf'; // Baked-in API key
     let userProvidedAPIKey = ''; // To store user-provided API key
+    let openAIKey = localStorage.getItem('openAIKey') || ''; // Initialize from localStorage or empty string
+    let debugMode = false;
+    let searchedWords = new Set(); // Keep track of words we've already searched
 
     // Event listener for API selection
     apiSelector.addEventListener('change', () => {
@@ -44,6 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listener for Settings Icon to open modal
     settingsIcon.addEventListener('click', () => {
         settingsModal.style.display = 'block';
+        
+        // Populate the OpenAI input field with the saved key
+        const savedKey = localStorage.getItem('openAIKey');
+        if (savedKey) {
+            document.getElementById('openai-api-key').value = savedKey;
+        }
     });
 
     // Event listener for Close Button
@@ -61,14 +70,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listener for Save Settings Button
     saveSettingsButton.addEventListener('click', () => {
         userProvidedAPIKey = userApiKeyInput.value.trim();
+        const newOpenAIKey = document.getElementById('openai-api-key').value.trim();
+        debugMode = document.getElementById('debug-mode').checked;
+        
+        // Update debug output visibility
+        document.getElementById('debug-output').style.display = debugMode ? 'block' : 'none';
+        
         if (userProvidedAPIKey !== '') {
             merriamWebsterAPIKey = userProvidedAPIKey;
-            alert('API Key updated successfully!');
-            settingsModal.style.display = 'none';
-            userApiKeyInput.value = '';
-        } else {
-            alert('Please enter a valid API Key.');
         }
+        
+        // Only update OpenAI key if a new one is provided
+        if (newOpenAIKey !== '') {
+            openAIKey = newOpenAIKey;
+            localStorage.setItem('openAIKey', openAIKey); // Save to localStorage
+        }
+        
+        settingsModal.style.display = 'none';
+        userApiKeyInput.value = '';
+        document.getElementById('openai-api-key').value = '';
     });
 
     // Event listener for the search button
@@ -96,11 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to process the input
     async function processInput(input) {
+        debugLog('Processing input', { input, selectedAPI });
         const tokens = input.split(/\s+/);
         console.log('Processing input tokens:', tokens);
+        
+        // Clear UI but keep the synonym mappings
         tilesContainer.innerHTML = ''; // Clear existing tiles
         tokensContainer.innerHTML = ''; // Clear existing tokens
-        synonymMap = {}; // Reset synonym mapping
         tokenColorMap = {}; // Reset token-color mapping
         usedColors = 0; // Reset color usage
 
@@ -110,15 +132,18 @@ document.addEventListener('DOMContentLoaded', () => {
             displayToken(token);
         });
 
-        console.log('Assigned Token Colors:', tokenColorMap);
+        // Only fetch synonyms for new words
+        const newTokens = tokens.filter(token => !searchedWords.has(token.toLowerCase()));
+        console.log('New tokens to search:', newTokens);
 
-        // Fetch synonyms for all tokens in parallel
-        const fetchPromises = tokens.map(token => fetchSynonyms(token));
+        // Fetch synonyms for new tokens in parallel
+        const fetchPromises = newTokens.map(token => fetchSynonyms(token));
         await Promise.all(fetchPromises);
 
-        console.log('Synonym Map after fetching all synonyms:', synonymMap);
+        // Add new tokens to searched set
+        newTokens.forEach(token => searchedWords.add(token.toLowerCase()));
 
-        // After all synonyms are fetched, create tiles
+        // After all synonyms are fetched, create tiles using complete synonymMap
         createSynonymTiles();
     }
 
@@ -149,6 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 data = await fetchDatamuseSynonyms(word);
             } else if (selectedAPI === 'merriam-webster') {
                 data = await fetchMerriamWebsterSynonyms(word);
+            } else if (selectedAPI === 'openai') {
+                data = await fetchOpenAISynonyms(word);
             }
 
             if (data.length === 0) {
@@ -159,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mapSynonyms(word, data);
         } catch (error) {
             console.error(error);
-            displayError(`Failed to fetch synonyms for "${word}"`);
+            displayError(`Failed to fetch synonyms for "${word}": ${error.message}`);
         }
     }
 
@@ -170,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error(`Datamuse API Error for "${word}": ${response.statusText}`);
         }
         const data = await response.json();
+        debugLog(`Datamuse API Response for "${word}"`, data);
         console.log(`Datamuse synonyms for "${word}":`, data);
         return data.map(item => item.word);
     }
@@ -181,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error(`Merriam-Webster API Error for "${word}": ${response.statusText}`);
         }
         const data = await response.json();
+        debugLog(`Merriam-Webster API Response for "${word}"`, data);
         console.log(`Merriam-Webster synonyms for "${word}":`, data);
 
         // Merriam-Webster API may return suggestions if the word is not found
@@ -203,6 +232,53 @@ document.addEventListener('DOMContentLoaded', () => {
         synonyms = [...new Set(synonyms)].slice(0, 10);
         console.log(`Extracted Merriam-Webster synonyms for "${word}":`, synonyms);
         return synonyms;
+    }
+
+    // Function to fetch synonyms from OpenAI API
+    async function fetchOpenAISynonyms(word) {
+        if (!openAIKey) {
+            throw new Error('Please add your OpenAI API key in the settings (click the gear icon)');
+        }
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openAIKey}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo",
+                    messages: [{
+                        role: "user",
+                        content: `Generate exactly 10 synonyms for the word "${word}". Respond with only the synonyms as a comma-separated list, no other text.`
+                    }]
+                })
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Invalid OpenAI API key. Please check your API key in settings.');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(`OpenAI API Error (${response.status}): ${errorData.error?.message || response.statusText}`);
+                }
+            }
+
+            const data = await response.json();
+            debugLog(`OpenAI API Response for "${word}"`, data);
+            
+            const synonymString = data.choices[0].message.content;
+            const synonyms = synonymString.split(',').map(s => s.trim()).slice(0, 10);
+            return synonyms;
+        } catch (error) {
+            debugLog(`OpenAI API Error for "${word}"`, error);
+            if (error.message.includes('API key')) {
+                // Clear the invalid API key
+                openAIKey = '';
+            }
+            throw error;
+        }
     }
 
     // Function to map synonyms to their associated tokens
@@ -306,8 +382,19 @@ document.addEventListener('DOMContentLoaded', () => {
         tokenColorMap = {};
         synonymMap = {};
         usedColors = 0;
-        merriamWebsterAPIKey = 'bbb28740-d72c-46d7-8eac-b62c9dbc24cf'; // Reset to default API key
-        userProvidedAPIKey = '';
+        searchedWords.clear();
         console.log('Cleared all tokens and tiles.');
+        // Note: We're not clearing the openAIKey or localStorage here
+    }
+
+    // Add this function for debug logging
+    function debugLog(message, data) {
+        if (!debugMode) return;
+        
+        const debugContent = document.getElementById('debug-content');
+        const timestamp = new Date().toLocaleTimeString();
+        const debugMessage = `[${timestamp}] ${message}\n${JSON.stringify(data, null, 2)}\n\n`;
+        
+        debugContent.textContent = debugMessage + debugContent.textContent;
     }
 });

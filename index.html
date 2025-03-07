@@ -40,6 +40,7 @@
             <select id="api-selector">
                 <option value="merriam-webster" selected>Merriam-Webster Thesaurus API</option>
                 <option value="datamuse">Datamuse API</option>
+                <option value="openai">OpenAI API</option>
             </select>
         </div>
         
@@ -54,10 +55,38 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2>Settings</h2>
-            <label for="user-api-key">Custom Merriam-Webster API Key:</label>
-            <input type="text" id="user-api-key" placeholder="Enter your own API Key if mine is down" />
-            <button id="save-settings">Save</button>
+            
+            <div class="settings-section">
+                <h3>API Keys</h3>
+                <div class="input-group">
+                    <label for="user-api-key">Merriam-Webster API Key</label>
+                    <input type="text" id="user-api-key" placeholder="Enter your own API Key if mine is down" />
+                </div>
+                
+                <div class="input-group">
+                    <label for="openai-api-key">OpenAI API Key</label>
+                    <input type="text" id="openai-api-key" placeholder="Enter your OpenAI API Key" />
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Debug Options</h3>
+                <div class="debug-setting">
+                    <label for="debug-mode">
+                        <input type="checkbox" id="debug-mode" />
+                        Enable Debug Mode
+                    </label>
+                </div>
+            </div>
+
+            <button id="save-settings">Save Changes</button>
         </div>
+    </div>
+    
+    <!-- Add this at the bottom of the container div -->
+    <div id="debug-output" class="debug-output" style="display: none;">
+        <h3>Debug Output</h3>
+        <pre id="debug-content"></pre>
     </div>
     
     <!-- Link to script.js -->
