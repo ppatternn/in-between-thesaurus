@@ -184,64 +184,133 @@ h1 {
 
 .modal-content {
     background-color: #fefefe;
-    margin: 10% auto; /* 10% from the top and centered */
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 400px; /* Could be more or less, depending on screen size */
-    border-radius: 4px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    margin: 5% auto;
+    padding: 30px;
+    border: none;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
-.close-button {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.close-button:hover,
-.close-button:focus {
-    color: black;
-    text-decoration: none;
-}
-
-/* Settings Modal Elements */
-#settings-modal h2 {
-    margin-top: 0;
-}
-
-#settings-modal label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+.modal-content h2 {
+    margin: 0 0 20px 0;
     color: #333;
+    font-size: 24px;
 }
 
-#user-api-key {
-    width: 100%;
-    padding: 8px;
-    font-size: 16px;
-    border: 2px solid #555;
-    border-radius: 4px;
-    outline: none;
+.modal-content h3 {
+    color: #555;
+    font-size: 18px;
+    margin: 0 0 15px 0;
+}
+
+.settings-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.settings-section:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.input-group {
     margin-bottom: 15px;
 }
 
-#save-settings {
-    padding: 10px 20px;
-    font-size: 16px;
-    border: none;
-    background-color: #1f77b4;
-    color: #fff;
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 500;
+}
+
+.input-group input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+.input-group input[type="text"]:focus {
+    border-color: #1f77b4;
+    outline: none;
+}
+
+.debug-setting {
+    margin: 10px 0;
+}
+
+.debug-setting label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     cursor: pointer;
-    border-radius: 4px;
+    color: #555;
+}
+
+.debug-setting input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+#save-settings {
+    width: 100%;
+    padding: 12px;
+    background-color: #1f77b4;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
     transition: background-color 0.3s;
 }
 
 #save-settings:hover {
-    background-color: #155a8a;
+    background-color: #1a649a;
+}
+
+.close-button {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close-button:hover {
+    color: #333;
+}
+
+/* Debug Output Styling */
+.debug-output {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.debug-output h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+#debug-content {
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 @media (max-width: 600px) {
@@ -251,4 +320,6 @@ h1 {
 
     #search-button,
     #clear-button {
-        padding:
+        padding: 10px 15px;
+    }
+}
