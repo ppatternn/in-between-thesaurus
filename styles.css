@@ -1,5 +1,9 @@
 /* styles.css */
 
+html {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
@@ -41,6 +45,7 @@ h1 {
     align-items: center;
     margin-bottom: 20px;
     gap: 10px; /* Space between elements */
+    font-family: -apple-system;
 }
 
 #search-input {
@@ -50,6 +55,7 @@ h1 {
     border: 2px solid #555;
     border-radius: 4px;
     outline: none;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 #search-button,
@@ -62,6 +68,7 @@ h1 {
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.3s;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 #search-button:hover,
@@ -78,6 +85,10 @@ h1 {
     border-left: 5px solid #1f77b4; /* Accent color matching the first token color */
     border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+p {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .description p {
@@ -102,6 +113,10 @@ h1 {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+label {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 .api-selection label {
     margin-right: 10px;
     font-weight: bold;
@@ -114,6 +129,7 @@ h1 {
     border: 2px solid #555;
     border-radius: 4px;
     outline: none;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Removed API Key Input Section Styling */
