@@ -372,6 +372,37 @@ label {
     word-wrap: break-word;
 }
 
+/* Homepage Navigation */
+.home-nav {
+    margin-bottom: 30px;
+}
+
+.home-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.home-nav li {
+    margin-bottom: 10px;
+}
+
+.home-nav a {
+    color: #ccc;
+    text-decoration: underline;
+    text-decoration-color: #666;
+    transition: color 0.2s, text-decoration-color 0.2s;
+}
+
+.home-nav a:hover {
+    color: #fff;
+    text-decoration-color: #999;
+}
+
+.home-content {
+    margin-top: 30px;
+}
+
 @media (max-width: 600px) {
     #search-input {
         width: 60%;

@@ -3,93 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>In Between Thesaurus</title>
-    <!-- Link to styles.css -->
-    <link rel="stylesheet" href="styles.css?v=2">
-    <!-- Font Awesome for Settings Icon -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Home</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>In Between Thesaurus</h1>
-            <!-- Settings Icon -->
-            <div class="settings-icon">
-                <i class="fas fa-cog"></i>
-            </div>
+            <h1>Home</h1>
         </header>
         
-        <div class="input-section">
-            <input type="text" id="search-input" placeholder="Enter words separated by spaces..." />
-            <button id="search-button">Search</button>
-            <button id="clear-button">Clear</button>
-        </div>
+        <main class="home-content">
+            <p>Welcome to my homepage.</p>
+        </main>
         
-        <!-- Description Section -->
-        <div class="description">
-            <p>
-                Each word you input is highlighted with a unique color. Synonyms are displayed as <strong>clickable tiles</strong> colored to match their respective words.
-                If a synonym is <strong>shared</strong> among multiple words, its tile will feature a split color background indicating its association. 
-                Click on a synonym tile to add it to your search.
-            </p>
-        </div>
-        
-        <!-- API Selection Section -->
-        <div class="api-selection">
-            <label for="api-selector">Choose Thesaurus API:</label>
-            <select id="api-selector">
-                <option value="merriam-webster" selected>Merriam-Webster Thesaurus API</option>
-                <option value="datamuse">Datamuse API</option>
-                <option value="openai">OpenAI API</option>
-            </select>
-        </div>
-        
-        <!-- Removed API Key Input Section Below API Selection -->
-        
-        <div id="tokens-container" class="tokens-container"></div>
-        <div id="tiles-container" class="tiles-container"></div>
+        <nav class="home-nav">
+            <ul>
+                <li><a href="thesaurus.html">In Between Thesaurus</a></li>
+            </ul>
+        </nav>
     </div>
-    
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2>Settings</h2>
-            
-            <div class="settings-section">
-                <h3>API Keys</h3>
-                <div class="input-group">
-                    <label for="user-api-key">Merriam-Webster API Key</label>
-                    <input type="text" id="user-api-key" placeholder="Enter your own API Key if mine is down" />
-                </div>
-                
-                <div class="input-group">
-                    <label for="openai-api-key">OpenAI API Key</label>
-                    <input type="text" id="openai-api-key" placeholder="Enter your OpenAI API Key" />
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>Debug Options</h3>
-                <div class="debug-setting">
-                    <label for="debug-mode">
-                        <input type="checkbox" id="debug-mode" />
-                        Enable Debug Mode
-                    </label>
-                </div>
-            </div>
-
-            <button id="save-settings">Save Changes</button>
-        </div>
-    </div>
-    
-    <!-- Add this at the bottom of the container div -->
-    <div id="debug-output" class="debug-output" style="display: none;">
-        <h3>Debug Output</h3>
-        <pre id="debug-content"></pre>
-    </div>
-    
-    <!-- Link to script.js -->
-    <script src="script.js"></script>
 </body>
 </html>
