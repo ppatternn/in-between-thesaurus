@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Prompt Lab - In Between Thesaurus</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0a0910;
+            --panel: #121019;
+            --panel-2: #181520;
+            --border: #2c2835;
+            --text: #f2edf8;
+            --muted: #9c95a7;
+            --dim: #6c6575;
+            --violet: #b982ff;
+            --cyan: #54d9ff;
+            --danger: #ff9aaa;
+            --success: #91e6b6;
+            --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 0 0, rgba(185, 130, 255, 0.07), transparent 32%),
+                radial-gradient(circle at 100% 100%, rgba(84, 217, 255, 0.05), transparent 32%),
+                var(--bg);
+            font-family: var(--sans);
+        }
+
+        button,
+        input,
+        select,
+        textarea { font: inherit; }
+
+        button { cursor: pointer; }
+
+        .shell {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 64px;
+        }
+
+        header {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            margin: 0 0 5px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 400;
+            letter-spacing: -0.035em;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .back-link {
+            color: var(--muted);
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .back-link:hover { color: var(--text); }
+
+        .notice {
+            margin-bottom: 18px;
+            padding: 10px 13px;
+            border: 1px solid rgba(255, 190, 104, 0.2);
+            border-radius: 8px;
+            color: #c9ad86;
+            background: rgba(255, 190, 104, 0.045);
+            font-size: 11px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(340px, 0.78fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(18, 16, 25, 0.88);
+            box-shadow: 0 18px 70px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 48px;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .panel-body { padding: 16px; }
+
+        .field { margin-bottom: 15px; }
+
+        .field:last-child { margin-bottom: 0; }
+
+        label,
+        .label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            outline: none;
+            color: var(--text);
+            background: #0d0c12;
+            transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+
+        input,
+        select { height: 39px; padding: 0 10px; }
+
+        textarea {
+            min-height: 245px;
+            padding: 11px 12px;
+            resize: vertical;
+            font-family: var(--mono);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: rgba(185, 130, 255, 0.55);
+            box-shadow: 0 0 0 3px rgba(185, 130, 255, 0.07);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .row.three { grid-template-columns: 1.35fr 0.8fr 0.7fr; }
+
+        .key-wrap { position: relative; }
+
+        .key-wrap input { padding-right: 54px; }
+
+        .reveal-key {
+            position: absolute;
+            top: 50%;
+            right: 7px;
+            padding: 4px 6px;
+            border: 0;
+            color: var(--dim);
+            background: transparent;
+            font-size: 10px;
+            transform: translateY(-50%);
+        }
+
+        .hint {
+            margin: 5px 0 0;
+            color: var(--dim);
+            font-size: 10px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        .primary,
+        .secondary,
+        .text-button {
+            border-radius: 7px;
+            font-weight: 600;
+        }
+
+        .primary {
+            min-width: 116px;
+            height: 40px;
+            border: 1px solid rgba(185, 130, 255, 0.7);
+            color: #140d1c;
+            background: linear-gradient(120deg, var(--violet), #d3a7ff);
+        }
+
+        .primary:disabled { cursor: wait; opacity: 0.55; }
+
+        [hidden] { display: none !important; }
+
+        .secondary {
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            background: transparent;
+        }
+
+        .text-button {
+            padding: 4px;
+            border: 0;
+            color: var(--dim);
+            background: none;
+            font-size: 10px;
+        }
+
+        .status-line {
+            min-height: 18px;
+            margin-left: auto;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 10px;
+        }
+
+        .status-line.error { color: var(--danger); }
+
+        .result-empty {
+            display: grid;
+            min-height: 280px;
+            place-items: center;
+            color: var(--dim);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .result-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            padding: 4px 7px;
+            border: 1px solid rgba(145, 230, 182, 0.26);
+            border-radius: 999px;
+            color: var(--success);
+            background: rgba(145, 230, 182, 0.07);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .badge.no-path {
+            border-color: rgba(255, 190, 104, 0.25);
+            color: #e0b87d;
+            background: rgba(255, 190, 104, 0.06);
+        }
+
+        .metric {
+            color: var(--dim);
+            font-family: var(--mono);
+            font-size: 10px;
+        }
+
+        .path {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .path-word {
+            color: var(--text);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 22px;
+        }
+
+        .path-word:first-child { color: var(--violet); }
+        .path-word:last-child { color: var(--cyan); }
+        .path-arrow { color: var(--dim); font-size: 11px; }
+
+        .edge {
+            margin-top: 8px;
+            padding: 10px 11px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.018);
+        }
+
+        .edge-title {
+            color: #d8d1df;
+            font-family: var(--mono);
+            font-size: 11px;
+        }
+
+        .edge-type { color: var(--violet); }
+
+        .edge p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        details {
+            margin-top: 16px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        summary {
+            padding: 12px 0 0;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        pre {
+            max-height: 360px;
+            overflow: auto;
+            padding: 10px;
+            border-radius: 6px;
+            color: #bdb5c7;
+            background: #09080d;
+            font-family: var(--mono);
+            font-size: 10px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .history-panel { margin-top: 18px; }
+
+        .history-list {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 9px;
+        }
+
+        .history-item {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            color: inherit;
+            background: #0e0d13;
+            text-align: left;
+        }
+
+        .history-pair {
+            display: block;
+            overflow: hidden;
+            margin-bottom: 5px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 15px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-meta {
+            color: var(--dim);
+            font-family: var(--mono);
+            font-size: 9px;
+        }
+
+        .graph-panel { margin-top: 18px; }
+
+        .toggle {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 0;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .toggle input {
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            accent-color: var(--violet);
+        }
+
+        .graph-controls {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .graph-prompt { min-height: 190px; }
+
+        .graph-result {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .neighborhoods {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .neighborhood {
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #0e0d13;
+        }
+
+        .neighborhood h3 {
+            margin: 0 0 10px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 20px;
+            font-weight: 400;
+        }
+
+        .level-title {
+            margin: 12px 0 6px;
+            color: var(--dim);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .word-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .word-chip {
+            padding: 4px 6px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: #d8d1df;
+            background: rgba(255, 255, 255, 0.02);
+            font-family: var(--mono);
+            font-size: 9px;
+        }
+
+        .word-chip.match {
+            border-color: rgba(145, 230, 182, 0.5);
+            color: var(--success);
+        }
+
+        .branch {
+            margin-top: 7px;
+            padding-left: 8px;
+            border-left: 1px solid var(--border);
+        }
+
+        .branch-parent {
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 9px;
+        }
+
+        .candidate-routes {
+            display: grid;
+            gap: 7px;
+            margin-bottom: 16px;
+        }
+
+        .candidate-route {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            padding: 9px 10px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.018);
+        }
+
+        .candidate-rank {
+            min-width: 18px;
+            color: var(--dim);
+            font-family: var(--mono);
+            font-size: 9px;
+        }
+
+        .candidate-word {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 16px;
+        }
+
+        .candidate-arrow,
+        .candidate-meeting {
+            color: var(--dim);
+            font-family: var(--mono);
+            font-size: 9px;
+        }
+
+        .candidate-meeting { margin-left: auto; }
+
+        @media (max-width: 850px) {
+            .layout { grid-template-columns: 1fr; }
+            .history-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .neighborhoods { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 560px) {
+            .shell { width: min(100% - 20px, 1180px); padding-top: 18px; }
+            header { align-items: flex-end; }
+            .row,
+            .row.three { grid-template-columns: 1fr; gap: 0; }
+            .history-list { grid-template-columns: 1fr; }
+            .status-line { width: 100%; margin-top: 5px; margin-left: 0; }
+            .actions { flex-wrap: wrap; }
+            .graph-controls { grid-template-columns: 1fr; gap: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <header>
+            <div>
+                <h1>Prompt Lab</h1>
+                <p class="subtitle">Test strict lexical paths before they touch the real experience.</p>
+            </div>
+            <a class="back-link" id="open-prototype" href="thesaurus.html">Open prototype</a>
+        </header>
+
+        <div class="notice">
+            Local testing tool. Your key is kept in this tab session and forwarded by the localhost-only lab server. Do not deploy this page with a shared key.
+        </div>
+
+        <main class="layout">
+            <section class="panel" aria-labelledby="experiment-title">
+                <div class="panel-header">
+                    <h2 id="experiment-title">Experiment</h2>
+                    <button class="text-button" id="reset-prompt" type="button">Reset prompt</button>
+                </div>
+                <form class="panel-body" id="lab-form">
+                    <div class="field">
+                        <label for="api-key">OpenAI API key</label>
+                        <div class="key-wrap">
+                            <input id="api-key" type="password" autocomplete="off" placeholder="sk-..." required>
+                            <button class="reveal-key" id="reveal-key" type="button">Show</button>
+                        </div>
+                        <p class="hint">Forwarded by the local lab server to api.openai.com and cleared when this tab session ends.</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="field">
+                            <label for="start-word">Start word</label>
+                            <input id="start-word" value="calm" autocomplete="off" required>
+                        </div>
+                        <div class="field">
+                            <label for="end-word">End word</label>
+                            <input id="end-word" value="quiet" autocomplete="off" required>
+                        </div>
+                    </div>
+
+                    <div class="row three">
+                        <div class="field">
+                            <label for="model">Model</label>
+                            <select id="model">
+                                <option value="gpt-5.5-2026-04-23">GPT-5.5 snapshot</option>
+                                <option value="gpt-5.5">GPT-5.5 latest</option>
+                                <option value="gpt-5.4">GPT-5.4</option>
+                                <option value="gpt-5.4-mini">GPT-5.4 mini</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="reasoning">Reasoning</label>
+                            <select id="reasoning">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="max-tokens">Max output</label>
+                            <input id="max-tokens" type="number" min="500" max="10000" step="100" value="3000">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="prompt">Prompt template</label>
+                        <textarea id="prompt" spellcheck="true"></textarea>
+                        <p class="hint">Use {{start_word}} and {{end_word}} where the submitted words belong.</p>
+                    </div>
+
+                    <div class="actions">
+                        <button class="primary" id="run-button" type="submit">Run experiment</button>
+                        <button class="secondary" id="cancel-button" type="button" hidden>Cancel</button>
+                        <button class="secondary" id="swap-button" type="button">Swap words</button>
+                        <span class="status-line" id="status-line" role="status"></span>
+                    </div>
+                </form>
+            </section>
+
+            <section class="panel" aria-labelledby="result-title">
+                <div class="panel-header">
+                    <h2 id="result-title">Result</h2>
+                    <span class="metric" id="run-id"></span>
+                </div>
+                <div class="panel-body" id="result">
+                    <div class="result-empty">Run a word pair to inspect the model&rsquo;s path and edge reasoning.</div>
+                </div>
+            </section>
+        </main>
+
+        <section class="panel history-panel" aria-labelledby="history-title">
+            <div class="panel-header">
+                <h2 id="history-title">Recent runs</h2>
+                <button class="text-button" id="clear-history" type="button">Clear history</button>
+            </div>
+            <div class="panel-body history-list" id="history-list"></div>
+        </section>
+
+        <section class="panel graph-panel" aria-labelledby="graph-title">
+            <div class="panel-header">
+                <h2 id="graph-title">Neighborhood search</h2>
+                <label class="toggle" for="graph-enabled">
+                    <input id="graph-enabled" type="checkbox">
+                    Use these settings in prototype
+                </label>
+            </div>
+            <div class="panel-body">
+                <p class="hint">Uses the start and end words above. Each displayed edge is generated explicitly; browser matching only merges identical words and traces their parents.</p>
+
+                <div class="graph-controls">
+                    <div class="field">
+                        <label for="graph-breadth">Neighbors per word</label>
+                        <input id="graph-breadth" type="number" min="2" max="10" value="7">
+                    </div>
+                    <div class="field">
+                        <label for="graph-depth">Levels per side</label>
+                        <select id="graph-depth">
+                            <option value="1">1</option>
+                            <option value="2" selected>2</option>
+                            <option value="3">3</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="graph-intermediates">Preferred intermediates</label>
+                        <select id="graph-intermediates">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3" selected>3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="graph-model">Model</label>
+                        <select id="graph-model">
+                            <option value="gpt-5.5-2026-04-23">GPT-5.5 snapshot</option>
+                            <option value="gpt-5.5">GPT-5.5 latest</option>
+                            <option value="gpt-5.4">GPT-5.4</option>
+                            <option value="gpt-5.4-mini" selected>GPT-5.4 mini</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="graph-reasoning">Reasoning</label>
+                        <select id="graph-reasoning">
+                            <option value="low" selected>Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="graph-max-tokens">Max output per side</label>
+                        <input id="graph-max-tokens" type="number" min="1000" max="10000" step="500" value="3000">
+                    </div>
+                </div>
+                <p class="hint">Level 3 can expand to hundreds of words per side at higher breadths and may require a larger output budget.</p>
+
+                <div class="field">
+                    <label for="graph-prompt">Neighborhood prompt</label>
+                    <textarea class="graph-prompt" id="graph-prompt" spellcheck="true"></textarea>
+                    <p class="hint">Available variables: {{word}}, {{breadth}}, and {{depth}}.</p>
+                </div>
+
+                <div class="actions">
+                    <button class="primary" id="run-graph" type="button">Generate &amp; match</button>
+                    <button class="secondary" id="cancel-graph" type="button" hidden>Cancel</button>
+                    <button class="secondary" id="load-prototype-graph" type="button">Load prototype run</button>
+                    <span class="status-line" id="graph-status" role="status"></span>
+                </div>
+
+                <div class="graph-result" id="graph-result">
+                    <div class="result-empty">Generate both neighborhoods to inspect every level and their deterministic match.</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const DEFAULT_PROMPT = `Background:
+
+You are part of a product called "In-Between Thesaurus," which visualizes
+a synonym path between two words.
+
+Task:
+
+Create the shortest reasonable path from "{{start_word}}" to
+"{{end_word}}".
+
+Each pair of adjacent words must be synonyms, near-synonyms, or
+interchangeable in at least one common context. Do not connect words merely because they are associated with the same topic.
+
+Use no more than four intermediate single words. Preserve
+"{{start_word}}" and "{{end_word}}" as the first and last nodes.
+
+Return only the path in this format: word -> word -> word
+
+Return no_path only when no reasonable path exists within four
+intermediate words.`;
+
+        const DEFAULT_GRAPH_PROMPT = `Build a playful word neighborhood rooted at "{{word}}".
+
+Return up to {{breadth}} single-word neighbors for the root. Use a varied
+mix of synonyms, near-synonyms, alternate senses, common associations,
+idiomatic links, and familiar metaphors. Favor useful variety and surprising
+possibilities over exhaustive precision.
+
+If {{depth}} is 2 or 3, expand every first-level word with up to
+{{breadth}} single-word neighbors of that parent. If {{depth}} is 3,
+also expand every second-level word with up to {{breadth}} neighbors.
+Return empty arrays for every level deeper than {{depth}}.
+
+Keep every parent-child link understandable, but a playful stretch is fine.
+Return only the requested words grouped by level and parent. Do not explain,
+classify, justify, match, or search for a route.`;
+        const GRAPH_PROMPT_VERSION = 4;
+
+        const RESPONSE_SCHEMA = {
+            type: 'object',
+            properties: {
+                status: {
+                    type: 'string',
+                    enum: ['path', 'no_path']
+                },
+                nodes: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    maxItems: 6
+                },
+                edges: {
+                    type: 'array',
+                    maxItems: 5,
+                    items: {
+                        type: 'object',
+                        properties: {
+                            from: { type: 'string' },
+                            to: { type: 'string' },
+                            relationship: {
+                                type: 'string',
+                                enum: ['synonym', 'near_synonym']
+                            },
+                            shared_sense: { type: 'string' },
+                            justification: { type: 'string' }
+                        },
+                        required: ['from', 'to', 'relationship', 'shared_sense', 'justification'],
+                        additionalProperties: false
+                    }
+                }
+            },
+            required: ['status', 'nodes', 'edges'],
+            additionalProperties: false
+        };
+
+        const MODEL_PRICES = {
+            'gpt-5.5-2026-04-23': { input: 5, cached: 0.5, output: 30 },
+            'gpt-5.5': { input: 5, cached: 0.5, output: 30 },
+            'gpt-5.4': { input: 2.5, cached: 0.25, output: 15 },
+            'gpt-5.4-mini': { input: 0.75, cached: 0.075, output: 4.5 }
+        };
+
+        const form = document.getElementById('lab-form');
+        const apiKey = document.getElementById('api-key');
+        const startWord = document.getElementById('start-word');
+        const endWord = document.getElementById('end-word');
+        const model = document.getElementById('model');
+        const reasoning = document.getElementById('reasoning');
+        const maxTokens = document.getElementById('max-tokens');
+        const prompt = document.getElementById('prompt');
+        const runButton = document.getElementById('run-button');
+        const cancelButton = document.getElementById('cancel-button');
+        const statusLine = document.getElementById('status-line');
+        const result = document.getElementById('result');
+        const runId = document.getElementById('run-id');
+        const historyList = document.getElementById('history-list');
+        const openPrototype = document.getElementById('open-prototype');
+        const graphEnabled = document.getElementById('graph-enabled');
+        const graphBreadth = document.getElementById('graph-breadth');
+        const graphDepth = document.getElementById('graph-depth');
+        const graphIntermediates = document.getElementById('graph-intermediates');
+        const graphModel = document.getElementById('graph-model');
+        const graphReasoning = document.getElementById('graph-reasoning');
+        const graphMaxTokens = document.getElementById('graph-max-tokens');
+        const graphPrompt = document.getElementById('graph-prompt');
+        const runGraph = document.getElementById('run-graph');
+        const cancelGraph = document.getElementById('cancel-graph');
+        const loadPrototypeGraph = document.getElementById('load-prototype-graph');
+        const graphStatus = document.getElementById('graph-status');
+        const graphResult = document.getElementById('graph-result');
+
+        let history = readJson('in-between-prompt-history', []);
+        let activeController = null;
+        let cancelReason = '';
+        let graphController = null;
+        let graphCancelReason = '';
+
+        apiKey.value = sessionStorage.getItem('in-between-openai-key') || '';
+        prompt.value = localStorage.getItem('in-between-prompt') || DEFAULT_PROMPT;
+        model.value = localStorage.getItem('in-between-model') || 'gpt-5.5';
+        reasoning.value = localStorage.getItem('in-between-reasoning') || 'medium';
+        const savedGraphSettings = readJson('in-between-graph-settings', {});
+        graphEnabled.checked = localStorage.getItem('in-between-connection-strategy') === 'graph';
+        graphBreadth.value = savedGraphSettings.promptVersion === GRAPH_PROMPT_VERSION ?
+            (savedGraphSettings.breadth || 7) : 7;
+        graphDepth.value = savedGraphSettings.depth || 2;
+        graphIntermediates.value = savedGraphSettings.preferredIntermediates || 3;
+        graphModel.value = savedGraphSettings.model || 'gpt-5.4-mini';
+        graphReasoning.value = savedGraphSettings.reasoning || 'low';
+        graphMaxTokens.value = savedGraphSettings.promptVersion === GRAPH_PROMPT_VERSION ?
+            (savedGraphSettings.maxOutputTokens || 3000) : 3000;
+        graphPrompt.value = savedGraphSettings.promptVersion === GRAPH_PROMPT_VERSION ?
+            (savedGraphSettings.prompt || DEFAULT_GRAPH_PROMPT) : DEFAULT_GRAPH_PROMPT;
+        renderHistory();
+        persistGraphSettings();
+
+        function persistApiKey() {
+            const key = apiKey.value.trim();
+            if (key) {
+                sessionStorage.setItem('in-between-openai-key', key);
+            } else {
+                sessionStorage.removeItem('in-between-openai-key');
+            }
+        }
+
+        apiKey.addEventListener('input', persistApiKey);
+        openPrototype.addEventListener('click', persistApiKey);
+
+        function currentGraphSettings() {
+            return {
+                enabled: graphEnabled.checked,
+                breadth: Math.min(10, Math.max(2, Number(graphBreadth.value) || 7)),
+                depth: Math.min(3, Math.max(1, Number(graphDepth.value) || 2)),
+                preferredIntermediates: Math.min(5, Math.max(1, Number(graphIntermediates.value) || 3)),
+                model: graphModel.value,
+                reasoning: graphReasoning.value,
+                maxOutputTokens: Math.min(10000, Math.max(1000, Number(graphMaxTokens.value) || 3000)),
+                prompt: graphPrompt.value || DEFAULT_GRAPH_PROMPT,
+                promptVersion: GRAPH_PROMPT_VERSION
+            };
+        }
+
+        function persistGraphSettings() {
+            const settings = currentGraphSettings();
+            localStorage.setItem('in-between-graph-settings', JSON.stringify(settings));
+            sessionStorage.setItem('in-between-graph-settings', JSON.stringify(settings));
+            localStorage.setItem('in-between-connection-strategy', settings.enabled ? 'graph' : 'direct');
+        }
+
+        [graphEnabled, graphBreadth, graphDepth, graphIntermediates, graphModel,
+            graphReasoning, graphMaxTokens, graphPrompt].forEach(control => {
+            control.addEventListener('input', persistGraphSettings);
+            control.addEventListener('change', persistGraphSettings);
+        });
+
+        function readJson(key, fallback) {
+            try {
+                return JSON.parse(localStorage.getItem(key)) || fallback;
+            } catch {
+                return fallback;
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function validateWord(value) {
+            return /^[\p{L}]+(?:['\u2019-][\p{L}]+)*$/u.test(value.trim());
+        }
+
+        function resolvedPrompt() {
+            return prompt.value
+                .replaceAll('{{start_word}}', startWord.value.trim())
+                .replaceAll('{{end_word}}', endWord.value.trim());
+        }
+
+        function responseContent(response) {
+            for (const item of response.output || []) {
+                for (const content of item.content || []) {
+                    if (content.type === 'refusal') {
+                        return { refusal: content.refusal, text: '' };
+                    }
+                    if (content.type === 'output_text') return { refusal: '', text: content.text };
+                }
+            }
+            return { refusal: '', text: '' };
+        }
+
+        function responseIssue(response, content) {
+            if (content.refusal) return `Model refusal: ${content.refusal}`;
+            if (response.status === 'incomplete') {
+                const reason = response.incomplete_details?.reason || 'unknown reason';
+                if (reason === 'max_output_tokens') {
+                    return 'Incomplete response: the model used the full output-token budget before producing an answer.';
+                }
+                return `Incomplete response: ${reason}.`;
+            }
+            return `No output text was returned (response status: ${response.status || 'unknown'}).`;
+        }
+
+        function validatePath(data, start, end) {
+            if (data.status === 'no_path') {
+                if (data.nodes.length || data.edges.length) {
+                    return 'no_path must return empty nodes and edges.';
+                }
+                return '';
+            }
+
+            if (data.nodes.length < 2 || data.nodes.length > 6) {
+                return 'A path must contain 2-6 nodes.';
+            }
+            if (data.edges.length !== data.nodes.length - 1) {
+                return 'The edge count does not match the node count.';
+            }
+            if (data.nodes[0].toLocaleLowerCase() !== start.toLocaleLowerCase() ||
+                data.nodes.at(-1).toLocaleLowerCase() !== end.toLocaleLowerCase()) {
+                return 'The returned endpoints do not match the submitted words.';
+            }
+            if (new Set(data.nodes.map(word => word.toLocaleLowerCase())).size !== data.nodes.length) {
+                return 'The path contains a repeated word.';
+            }
+            for (let index = 0; index < data.edges.length; index++) {
+                const edge = data.edges[index];
+                if (edge.from.toLocaleLowerCase() !== data.nodes[index].toLocaleLowerCase() ||
+                    edge.to.toLocaleLowerCase() !== data.nodes[index + 1].toLocaleLowerCase()) {
+                    return `Edge ${index + 1} does not match its adjacent nodes.`;
+                }
+            }
+            return '';
+        }
+
+        function estimateCost(usage, modelName) {
+            const prices = MODEL_PRICES[modelName];
+            if (!prices || !usage) return null;
+            const cached = usage.input_tokens_details?.cached_tokens || 0;
+            const regular = Math.max(0, (usage.input_tokens || 0) - cached);
+            return (regular * prices.input + cached * prices.cached + (usage.output_tokens || 0) * prices.output) / 1000000;
+        }
+
+        function formatCost(cost) {
+            if (cost === null) return 'cost unavailable';
+            if (cost < 0.01) return `~$${cost.toFixed(4)}`;
+            return `~$${cost.toFixed(3)}`;
+        }
+
+        function renderResult(run) {
+            const data = run.parsed;
+            const cost = estimateCost(run.response.usage, run.model);
+            const usage = run.response.usage || {};
+
+            if (run.error) {
+                result.innerHTML = `
+                    <div class="result-summary">
+                        <span class="badge no-path">${escapeHtml(run.response.status || 'incomplete')}</span>
+                        <span class="metric">${run.latency} ms</span>
+                        <span class="metric">${usage.input_tokens || '?'} in</span>
+                        <span class="metric">${usage.output_tokens || '?'} out</span>
+                        <span class="metric">${formatCost(cost)}</span>
+                    </div>
+                    <p class="result-empty">${escapeHtml(run.error)}</p>
+                    <details>
+                        <summary>Resolved prompt</summary>
+                        <pre>${escapeHtml(run.resolvedPrompt)}</pre>
+                    </details>
+                    <details open>
+                        <summary>Raw API response</summary>
+                        <pre>${escapeHtml(JSON.stringify(run.response, null, 2))}</pre>
+                    </details>
+                `;
+                runId.textContent = run.response.id || '';
+                return;
+            }
+
+            const noPath = data.status === 'no_path';
+            const pathHtml = noPath ?
+                '<p class="result-empty">No strict path was found within four intermediate words.</p>' :
+                `<div class="path">${data.nodes.map((word, index) => {
+                    const arrow = index < data.nodes.length - 1 ? '<span class="path-arrow">&rarr;</span>' : '';
+                    return `<span class="path-word">${escapeHtml(word)}</span>${arrow}`;
+                }).join('')}</div>`;
+
+            const edgesHtml = noPath ? '' : data.edges.map(edge => `
+                <div class="edge">
+                    <div class="edge-title">
+                        ${escapeHtml(edge.from)} &rarr; ${escapeHtml(edge.to)}
+                        <span class="edge-type">${escapeHtml(edge.relationship)}</span>
+                    </div>
+                    <p><strong>Shared sense:</strong> ${escapeHtml(edge.shared_sense)}</p>
+                    <p>${escapeHtml(edge.justification)}</p>
+                </div>
+            `).join('');
+
+            result.innerHTML = `
+                <div class="result-summary">
+                    <span class="badge ${noPath ? 'no-path' : ''}">${escapeHtml(data.status.replace('_', ' '))}</span>
+                    <span class="metric">${run.latency} ms</span>
+                    <span class="metric">${usage.input_tokens || '?'} in</span>
+                    <span class="metric">${usage.output_tokens || '?'} out</span>
+                    <span class="metric">${formatCost(cost)}</span>
+                </div>
+                ${pathHtml}
+                ${edgesHtml}
+                ${run.validationError ? `<p class="status-line error">Client validation: ${escapeHtml(run.validationError)}</p>` : ''}
+                <details>
+                    <summary>Resolved prompt</summary>
+                    <pre>${escapeHtml(run.resolvedPrompt)}</pre>
+                </details>
+                <details>
+                    <summary>Parsed output</summary>
+                    <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+                </details>
+                <details>
+                    <summary>Raw API response</summary>
+                    <pre>${escapeHtml(JSON.stringify(run.response, null, 2))}</pre>
+                </details>
+            `;
+            runId.textContent = run.response.id || '';
+        }
+
+        function enumerateNeighborhoodTraces(neighborhood) {
+            const root = {
+                word: neighborhood.root,
+                key: neighborhood.root.toLocaleLowerCase()
+            };
+            const traces = [{ key: root.key, depth: 0, rank: 0, trace: [root] }];
+            const firstLevel = new Map();
+            const secondLevel = new Map();
+
+            neighborhood.level_1.forEach((word, index) => {
+                const node = { word, key: word.toLocaleLowerCase() };
+                const entry = {
+                    key: node.key,
+                    depth: 1,
+                    rank: index,
+                    trace: [root, node]
+                };
+                traces.push(entry);
+                if (!firstLevel.has(node.key)) firstLevel.set(node.key, []);
+                firstLevel.get(node.key).push(entry);
+            });
+
+            neighborhood.level_2.forEach((group, groupIndex) => {
+                const parents = firstLevel.get(group.parent.toLocaleLowerCase()) || [];
+                parents.forEach(parent => {
+                    group.children.forEach((word, childIndex) => {
+                        const node = { word, key: word.toLocaleLowerCase() };
+                        const entry = {
+                            key: node.key,
+                            depth: 2,
+                            rank: groupIndex * 20 + childIndex,
+                            trace: [...parent.trace, node]
+                        };
+                        traces.push(entry);
+                        if (!secondLevel.has(node.key)) secondLevel.set(node.key, []);
+                        secondLevel.get(node.key).push(entry);
+                    });
+                });
+            });
+            (neighborhood.level_3 || []).forEach((group, groupIndex) => {
+                const parents = secondLevel.get(group.parent.toLocaleLowerCase()) || [];
+                parents.forEach(parent => {
+                    group.children.forEach((word, childIndex) => {
+                        const node = { word, key: word.toLocaleLowerCase() };
+                        traces.push({
+                            key: node.key,
+                            depth: 3,
+                            rank: groupIndex * 20 + childIndex,
+                            trace: [...parent.trace, node]
+                        });
+                    });
+                });
+            });
+            return traces;
+        }
+
+        function findNeighborhoodPaths(left, right, preferredIntermediates) {
+            const leftTraces = enumerateNeighborhoodTraces(left);
+            const rightByWord = new Map();
+            enumerateNeighborhoodTraces(right).forEach(trace => {
+                if (!rightByWord.has(trace.key)) rightByWord.set(trace.key, []);
+                rightByWord.get(trace.key).push(trace);
+            });
+
+            const uniqueRoutes = new Map();
+            leftTraces.forEach(leftTrace => {
+                (rightByWord.get(leftTrace.key) || []).forEach(rightTrace => {
+                    const intermediates = leftTrace.depth + rightTrace.depth - 1;
+                    if (intermediates < 1 || intermediates > 5) return;
+                    const trace = [...leftTrace.trace, ...rightTrace.trace.slice(0, -1).reverse()];
+                    const keys = trace.map(node => node.key);
+                    if (new Set(keys).size !== keys.length) return;
+                    const routeKey = keys.join('|');
+                    if (uniqueRoutes.has(routeKey)) return;
+                    const nodes = trace.map(node => node.word);
+                    uniqueRoutes.set(routeKey, {
+                        nodes,
+                        edges: nodes.slice(0, -1).map((from, index) => ({
+                            from,
+                            to: nodes[index + 1],
+                            relationship: 'related',
+                            shared_sense: ''
+                        })),
+                        match: leftTrace.key,
+                        intermediates,
+                        distance: Math.abs(intermediates - preferredIntermediates),
+                        rank: leftTrace.rank + rightTrace.rank
+                    });
+                });
+            });
+
+            const ranked = [...uniqueRoutes.values()].sort((a, b) =>
+                a.distance - b.distance || a.rank - b.rank ||
+                b.intermediates - a.intermediates || a.match.localeCompare(b.match)
+            );
+            const selected = [];
+            const meetings = new Set();
+            ranked.forEach(path => {
+                if (selected.length === 5 || meetings.has(path.match)) return;
+                selected.push(path);
+                meetings.add(path.match);
+            });
+            ranked.forEach(path => {
+                if (selected.length === 5 || selected.includes(path)) return;
+                selected.push(path);
+            });
+            return { paths: selected, total: ranked.length };
+        }
+
+        function renderNeighborhood(neighborhood, matches) {
+            const chip = word => `
+                <span class="word-chip ${matches.has(word.toLocaleLowerCase()) ? 'match' : ''}">
+                    ${escapeHtml(word)}
+                </span>`;
+            const secondLevel = neighborhood.level_2.map(group => `
+                <div class="branch">
+                    <div class="branch-parent">${escapeHtml(group.parent)} &rarr;</div>
+                    <div class="word-chips">${group.children.map(chip).join('')}</div>
+                </div>`).join('');
+            const thirdLevel = (neighborhood.level_3 || []).map(group => `
+                <div class="branch">
+                    <div class="branch-parent">${escapeHtml(group.parent)} &rarr;</div>
+                    <div class="word-chips">${group.children.map(chip).join('')}</div>
+                </div>`).join('');
+
+            return `
+                <article class="neighborhood">
+                    <h3>${escapeHtml(neighborhood.root)}</h3>
+                    <div class="level-title">Level 1 · ${neighborhood.level_1.length} words</div>
+                    <div class="word-chips">${neighborhood.level_1.map(chip).join('')}</div>
+                    <div class="level-title">Level 2 · ${neighborhood.level_2.reduce((sum, group) => sum + group.children.length, 0)} words</div>
+                    ${secondLevel || '<span class="hint">No second level returned.</span>'}
+                    <div class="level-title">Level 3 · ${(neighborhood.level_3 || []).reduce((sum, group) => sum + group.children.length, 0)} words</div>
+                    ${thirdLevel || '<span class="hint">No third level returned.</span>'}
+                </article>`;
+        }
+
+        function renderGraphResult(leftResponse, rightResponse, matchResult, latency) {
+            const left = leftResponse.neighborhood;
+            const right = rightResponse.neighborhood;
+            const paths = matchResult.paths;
+            const usage = {
+                input: (leftResponse.usage?.input_tokens || 0) + (rightResponse.usage?.input_tokens || 0),
+                output: (leftResponse.usage?.output_tokens || 0) + (rightResponse.usage?.output_tokens || 0)
+            };
+            const duplicatesRemoved = (leftResponse.duplicatesRemoved || 0) + (rightResponse.duplicatesRemoved || 0);
+            const invalidWordsRemoved = (leftResponse.invalidWordsRemoved || 0) + (rightResponse.invalidWordsRemoved || 0);
+            const matches = new Set(paths.map(path => path.match));
+            const pathHtml = paths.length ? `
+                <div class="candidate-routes">${paths.map((path, pathIndex) => `
+                    <div class="candidate-route">
+                        <span class="candidate-rank">${pathIndex + 1}</span>
+                        ${path.nodes.map((word, index) => {
+                            const arrow = index < path.nodes.length - 1 ? '<span class="candidate-arrow">&rarr;</span>' : '';
+                            return `<span class="candidate-word">${escapeHtml(word)}</span>${arrow}`;
+                        }).join('')}
+                        <span class="candidate-meeting">via ${escapeHtml(path.match)}</span>
+                    </div>`).join('')}
+                </div>
+                <span class="hint">Showing ${paths.length} of ${matchResult.total} cycle-free exact-overlap routes.</span>` :
+                '<p class="result-empty">The generated neighborhoods did not contain a cycle-free exact overlap within the selected levels.</p>';
+
+            graphResult.innerHTML = `
+                <div class="result-summary">
+                    <span class="badge ${paths.length ? '' : 'no-path'}">${paths.length ? `${matchResult.total} paths` : 'no path'}</span>
+                    <span class="metric">${latency} ms wall time</span>
+                    <span class="metric">${usage.input} in</span>
+                    <span class="metric">${usage.output} out</span>
+                    <span class="metric">${duplicatesRemoved} duplicate edges removed</span>
+                    <span class="metric">${invalidWordsRemoved} invalid words removed</span>
+                </div>
+                ${pathHtml}
+                <div class="neighborhoods">
+                    ${renderNeighborhood(left, matches)}
+                    ${renderNeighborhood(right, matches)}
+                </div>
+                <details>
+                    <summary>Raw neighborhoods</summary>
+                    <pre>${escapeHtml(JSON.stringify({ left: leftResponse, right: rightResponse }, null, 2))}</pre>
+                </details>`;
+        }
+
+        async function requestNeighborhood(word, key, settings, signal) {
+            const response = await fetch('/api/neighborhood', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ apiKey: key, word, ...settings }),
+                signal
+            });
+            const body = await response.json();
+            if (!response.ok) throw new Error(body.error?.message || `Neighborhood request failed (${response.status}).`);
+            return body;
+        }
+
+        async function runGraphExperiment() {
+            const key = apiKey.value.trim();
+            const start = startWord.value.trim();
+            const end = endWord.value.trim();
+            const settings = currentGraphSettings();
+            persistApiKey();
+            persistGraphSettings();
+
+            if (!key || !validateWord(start) || !validateWord(end) || start.toLocaleLowerCase() === end.toLocaleLowerCase()) {
+                graphStatus.textContent = 'Enter an API key and two different single words above.';
+                graphStatus.className = 'status-line error';
+                return;
+            }
+
+            runGraph.disabled = true;
+            runGraph.textContent = 'Generating...';
+            cancelGraph.hidden = false;
+            graphStatus.textContent = `Generating two ${settings.breadth}-wide neighborhoods in parallel`;
+            graphStatus.className = 'status-line';
+            graphController = new AbortController();
+            graphCancelReason = '';
+            const started = performance.now();
+            const timeout = window.setTimeout(() => {
+                graphCancelReason = 'timeout';
+                graphController?.abort();
+            }, 90000);
+
+            try {
+                const requestSettings = {
+                    breadth: settings.breadth,
+                    depth: settings.depth,
+                    model: settings.model,
+                    reasoning: settings.reasoning,
+                    maxOutputTokens: settings.maxOutputTokens,
+                    prompt: settings.prompt
+                };
+                const [left, right] = await Promise.all([
+                    requestNeighborhood(start, key, requestSettings, graphController.signal),
+                    requestNeighborhood(end, key, requestSettings, graphController.signal)
+                ]);
+                const latency = Math.round(performance.now() - started);
+                const matches = findNeighborhoodPaths(left.neighborhood, right.neighborhood, settings.preferredIntermediates);
+                renderGraphResult(left, right, matches, latency);
+                try {
+                    localStorage.setItem('in-between-last-lab-graph', JSON.stringify({
+                        start,
+                        end,
+                        settings: {
+                            ...requestSettings,
+                            preferredIntermediates: settings.preferredIntermediates
+                        },
+                        left,
+                        right,
+                        latency,
+                        routes: matches.total,
+                        capturedAt: new Date().toISOString()
+                    }));
+                } catch {
+                    // A completed lab run remains usable if comparison storage is unavailable.
+                }
+                graphStatus.textContent = matches.paths.length ?
+                    `Found ${matches.total} routes in ${latency} ms` : `No overlap after ${latency} ms`;
+            } catch (error) {
+                graphController?.abort();
+                const message = error.name === 'AbortError' ?
+                    (graphCancelReason === 'timeout' ? 'Canceled after 90 seconds.' : 'Generation canceled.') : error.message;
+                graphStatus.textContent = message;
+                graphStatus.className = 'status-line error';
+            } finally {
+                window.clearTimeout(timeout);
+                graphController = null;
+                runGraph.disabled = false;
+                runGraph.textContent = 'Generate & match';
+                cancelGraph.hidden = true;
+            }
+        }
+
+        function loadLastPrototypeGraph() {
+            const run = readJson('in-between-last-prototype-graph', null);
+            if (!run?.left?.neighborhood || !run?.right?.neighborhood) {
+                graphStatus.textContent = 'No prototype graph run has been captured yet.';
+                graphStatus.className = 'status-line error';
+                return;
+            }
+
+            const preferred = Number(run.settings?.preferredIntermediates) || 3;
+            const matches = findNeighborhoodPaths(
+                run.left.neighborhood,
+                run.right.neighborhood,
+                preferred
+            );
+            startWord.value = run.start;
+            endWord.value = run.end;
+            renderGraphResult(run.left, run.right, matches, run.latency || 0);
+            const labRun = readJson('in-between-last-lab-graph', null);
+            const comparableSettings = settings => JSON.stringify({
+                breadth: settings?.breadth,
+                depth: settings?.depth,
+                model: settings?.model,
+                reasoning: settings?.reasoning,
+                maxOutputTokens: settings?.maxOutputTokens,
+                prompt: settings?.prompt,
+                preferredIntermediates: settings?.preferredIntermediates
+            });
+            const settingsMatch = labRun ?
+                comparableSettings(labRun.settings) === comparableSettings(run.settings) : false;
+            graphResult.insertAdjacentHTML('beforeend', `
+                ${labRun ? `<p class="hint">Comparison: settings ${settingsMatch ? 'match' : 'differ'} · Prompt Lab ${labRun.routes || 0} routes · prototype ${matches.total} routes.</p>` : ''}
+                <details>
+                    <summary>Prototype settings</summary>
+                    <pre>${escapeHtml(JSON.stringify(run.settings, null, 2))}</pre>
+                </details>`);
+            graphStatus.textContent = matches.paths.length ?
+                `Prototype found ${matches.total} routes` : 'Prototype generated no matching routes';
+            graphStatus.className = 'status-line';
+        }
+
+        function renderHistory() {
+            if (!history.length) {
+                historyList.innerHTML = '<span class="hint">Successful runs will appear here.</span>';
+                return;
+            }
+
+            historyList.innerHTML = history.map((run, index) => `
+                <button class="history-item" type="button" data-history-index="${index}">
+                    <span class="history-pair">${escapeHtml(run.start)} &rarr; ${escapeHtml(run.end)}</span>
+                    <span class="history-meta">${escapeHtml(run.model)} / ${escapeHtml(run.reasoning)} / ${run.latency} ms${run.error ? ' / incomplete' : ''}</span>
+                </button>
+            `).join('');
+        }
+
+        function saveHistory(run) {
+            history.unshift({
+                start: run.start,
+                end: run.end,
+                model: run.model,
+                reasoning: run.reasoning,
+                maxTokens: run.maxTokens,
+                prompt: run.prompt,
+                latency: run.latency,
+                parsed: run.parsed,
+                response: run.response,
+                resolvedPrompt: run.resolvedPrompt,
+                validationError: run.validationError,
+                error: run.error || ''
+            });
+            history = history.slice(0, 12);
+            localStorage.setItem('in-between-prompt-history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const key = apiKey.value.trim();
+            const start = startWord.value.trim();
+            const end = endWord.value.trim();
+
+            if (!key) {
+                statusLine.textContent = 'Enter an API key.';
+                statusLine.className = 'status-line error';
+                return;
+            }
+            if (!validateWord(start) || !validateWord(end)) {
+                statusLine.textContent = 'Use two single words.';
+                statusLine.className = 'status-line error';
+                return;
+            }
+            if (start.toLocaleLowerCase() === end.toLocaleLowerCase()) {
+                statusLine.textContent = 'Use two different words.';
+                statusLine.className = 'status-line error';
+                return;
+            }
+
+            sessionStorage.setItem('in-between-openai-key', key);
+            localStorage.setItem('in-between-prompt', prompt.value);
+            localStorage.setItem('in-between-model', model.value);
+            localStorage.setItem('in-between-reasoning', reasoning.value);
+
+            const body = {
+                model: model.value,
+                input: resolvedPrompt(),
+                reasoning: { effort: reasoning.value },
+                max_output_tokens: Number(maxTokens.value),
+                text: {
+                    format: {
+                        type: 'json_schema',
+                        name: 'lexical_path',
+                        strict: true,
+                        schema: RESPONSE_SCHEMA
+                    }
+                }
+            };
+
+            runButton.disabled = true;
+            runButton.textContent = 'Running...';
+            cancelButton.hidden = false;
+            statusLine.textContent = `${model.value} is thinking`;
+            statusLine.className = 'status-line';
+            const started = performance.now();
+            activeController = new AbortController();
+            cancelReason = '';
+            const timeout = window.setTimeout(() => {
+                cancelReason = 'timeout';
+                activeController?.abort();
+            }, 90000);
+
+            try {
+                const apiResponse = await fetch('/api/prompt-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ apiKey: key, request: body }),
+                    signal: activeController.signal
+                });
+                const response = await apiResponse.json();
+                if (!apiResponse.ok) {
+                    throw new Error(response.error?.message || `OpenAI returned ${apiResponse.status}.`);
+                }
+
+                const latency = Math.round(performance.now() - started);
+                const content = responseContent(response);
+                const issue = content.text ? '' : responseIssue(response, content);
+                if (issue) {
+                    const incompleteRun = {
+                        start,
+                        end,
+                        model: model.value,
+                        reasoning: reasoning.value,
+                        maxTokens: Number(maxTokens.value),
+                        prompt: prompt.value,
+                        resolvedPrompt: body.input,
+                        latency,
+                        parsed: null,
+                        response,
+                        validationError: '',
+                        error: issue
+                    };
+                    renderResult(incompleteRun);
+                    saveHistory(incompleteRun);
+                    statusLine.textContent = issue;
+                    statusLine.className = 'status-line error';
+                    return;
+                }
+
+                const parsed = JSON.parse(content.text);
+                const run = {
+                    start,
+                    end,
+                    model: model.value,
+                    reasoning: reasoning.value,
+                    maxTokens: Number(maxTokens.value),
+                    prompt: prompt.value,
+                    resolvedPrompt: body.input,
+                    latency,
+                    parsed,
+                    response,
+                    validationError: validatePath(parsed, start, end),
+                    error: ''
+                };
+
+                renderResult(run);
+                saveHistory(run);
+                statusLine.textContent = `Completed in ${latency} ms`;
+            } catch (error) {
+                let message = error.message;
+                if (error.name === 'AbortError') {
+                    message = cancelReason === 'timeout' ?
+                        'Canceled after the 90-second timeout.' : 'Request canceled.';
+                } else if (error.message === 'Failed to fetch') {
+                    message = 'Prompt lab server unavailable. Run: node prompt-lab-server.mjs';
+                }
+                statusLine.textContent = message;
+                statusLine.className = 'status-line error';
+                result.innerHTML = `<div class="result-empty">${escapeHtml(message)}</div>`;
+                runId.textContent = '';
+            } finally {
+                window.clearTimeout(timeout);
+                activeController = null;
+                cancelReason = '';
+                runButton.disabled = false;
+                runButton.textContent = 'Run experiment';
+                cancelButton.hidden = true;
+            }
+        });
+
+        cancelButton.addEventListener('click', () => {
+            cancelReason = 'manual';
+            statusLine.textContent = 'Canceling request...';
+            activeController?.abort();
+        });
+
+        runGraph.addEventListener('click', runGraphExperiment);
+        loadPrototypeGraph.addEventListener('click', loadLastPrototypeGraph);
+        cancelGraph.addEventListener('click', () => {
+            graphCancelReason = 'manual';
+            graphStatus.textContent = 'Canceling generation...';
+            graphController?.abort();
+        });
+
+        document.getElementById('reveal-key').addEventListener('click', event => {
+            const showing = apiKey.type === 'text';
+            apiKey.type = showing ? 'password' : 'text';
+            event.currentTarget.textContent = showing ? 'Show' : 'Hide';
+        });
+
+        document.getElementById('swap-button').addEventListener('click', () => {
+            [startWord.value, endWord.value] = [endWord.value, startWord.value];
+        });
+
+        document.getElementById('reset-prompt').addEventListener('click', () => {
+            prompt.value = DEFAULT_PROMPT;
+            localStorage.setItem('in-between-prompt', DEFAULT_PROMPT);
+        });
+
+        document.getElementById('clear-history').addEventListener('click', () => {
+            history = [];
+            localStorage.removeItem('in-between-prompt-history');
+            renderHistory();
+        });
+
+        historyList.addEventListener('click', event => {
+            const item = event.target.closest('[data-history-index]');
+            if (!item) return;
+            const run = history[Number(item.dataset.historyIndex)];
+            startWord.value = run.start;
+            endWord.value = run.end;
+            model.value = run.model;
+            reasoning.value = run.reasoning;
+            maxTokens.value = run.maxTokens;
+            prompt.value = run.prompt;
+            renderResult(run);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    </script>
+</body>
+</html>

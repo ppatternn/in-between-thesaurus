@@ -1,400 +1,694 @@
-// script.js
-
 document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('search-input');
-    const searchButton = document.getElementById('search-button');
-    const clearButton = document.getElementById('clear-button');
-    const tilesContainer = document.getElementById('tiles-container');
-    const tokensContainer = document.getElementById('tokens-container');
-    const apiSelector = document.getElementById('api-selector');
-    const settingsIcon = document.querySelector('.settings-icon');
-    const settingsModal = document.getElementById('settings-modal');
-    const closeButton = document.querySelector('.close-button');
-    const saveSettingsButton = document.getElementById('save-settings');
-    const userApiKeyInput = document.getElementById('user-api-key');
+    const experience = document.getElementById('experience');
+    const constellation = document.getElementById('constellation');
+    const strandCanvas = document.getElementById('strand-canvas');
+    const wordLayer = document.getElementById('word-layer');
+    const transcript = document.getElementById('path-transcript');
+    const pathMeta = document.getElementById('path-meta');
+    const composer = document.getElementById('composer');
+    const tokenList = document.getElementById('token-list');
+    const wordInput = document.getElementById('word-input');
+    const connectButton = document.getElementById('connect-button');
+    const errorOutput = document.getElementById('composer-error');
+    const examples = document.getElementById('examples');
+    const mockMode = new URLSearchParams(window.location.search).get('mock') === '1';
+    const localMode = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
-    // Predefined list of distinct colors
-    const colorPalette = [
-        '#1f77b4', // Blue
-        '#ff7f0e', // Orange
-        '#2ca02c', // Green
-        '#d62728', // Red
-        '#9467bd', // Purple
-        '#8c564b', // Brown
-        '#e377c2', // Pink
-        '#7f7f7f', // Gray
-        '#bcbd22', // Olive
-        '#17becf'  // Cyan
-    ];
+    const colors = {
+        start: [185, 130, 255],
+        end: [84, 217, 255]
+    };
 
-    let tokenColorMap = {}; // Maps token to its assigned color
-    let synonymMap = {};    // Maps synonym to Set of tokens it belongs to
-    let usedColors = 0;     // Tracks the number of colors used
-    let selectedAPI = 'merriam-webster'; // Default API is Merriam-Webster
-    let merriamWebsterAPIKey = 'bbb28740-d72c-46d7-8eac-b62c9dbc24cf'; // Baked-in API key
-    let userProvidedAPIKey = ''; // To store user-provided API key
-    let openAIKey = localStorage.getItem('openAIKey') || ''; // Initialize from localStorage or empty string
-    let debugMode = false;
-    let searchedWords = new Set(); // Keep track of words we've already searched
+    const mockPaths = new Map([
+        ['memory|ocean', {
+            nodes: ['memory', 'recollection', 'echo', 'current', 'ocean'],
+            mode: 'scenic'
+        }],
+        ['calm|quiet', {
+            nodes: ['calm', 'still', 'quiet'],
+            mode: 'synonym'
+        }],
+        ['fire|ice', {
+            nodes: ['fire', 'heat', 'temperature', 'cold', 'ice'],
+            mode: 'scenic'
+        }],
+        ['light|heavy', {
+            nodes: ['light', 'slight', 'measured', 'weighty', 'heavy'],
+            mode: 'scenic'
+        }],
+        ['serene|calm', {
+            nodes: ['serene', 'calm'],
+            mode: 'synonym'
+        }]
+    ]);
 
-    // Event listener for API selection
-    apiSelector.addEventListener('change', () => {
-        selectedAPI = apiSelector.value;
-        // No API key input section to show/hide since it's removed
-        // If using a backend or any other method, handle accordingly
-    });
+    let tokens = [];
+    let activePath = null;
+    let activeEdges = [];
+    let resizeFrame = null;
+    let requestController = null;
+    let requestVersion = 0;
+    let abortReason = '';
+    let timeoutId = null;
 
-    // Event listener for Settings Icon to open modal
-    settingsIcon.addEventListener('click', () => {
-        settingsModal.style.display = 'block';
-        
-        // Populate the OpenAI input field with the saved key
-        const savedKey = localStorage.getItem('openAIKey');
-        if (savedKey) {
-            document.getElementById('openai-api-key').value = savedKey;
+    function normalizeWord(value) {
+        return value.trim().replace(/[\u2019]/g, "'");
+    }
+
+    function isValidWord(value) {
+        return /^[\p{L}]+(?:['-][\p{L}]+)*$/u.test(value);
+    }
+
+    function showError(message) {
+        errorOutput.textContent = message;
+    }
+
+    function showMissingKeyError() {
+        errorOutput.innerHTML = 'Add your API key in <a href="prompt-lab.html">Prompt Lab</a>, then open the prototype from there.';
+    }
+
+    function clearError() {
+        errorOutput.textContent = '';
+    }
+
+    function setLoading(loading) {
+        const label = connectButton.querySelector('span');
+        wordInput.disabled = loading;
+        connectButton.disabled = false;
+        connectButton.classList.toggle('is-cancel', loading);
+        connectButton.setAttribute('aria-label', loading ? 'Cancel connection' : 'Connect words');
+        label.textContent = loading ? '\u00d7' : '\u2192';
+        if (!loading) updateInputState();
+    }
+
+    function abortRequest(reason = 'superseded') {
+        if (!requestController) return;
+        abortReason = reason;
+        requestController.abort();
+    }
+
+    function updateInputState() {
+        if (tokens.length === 0) {
+            wordInput.placeholder = 'Type a word, then press space';
+        } else if (tokens.length === 1) {
+            wordInput.placeholder = 'Now type another word';
+        } else {
+            wordInput.placeholder = 'Type to restart';
         }
-    });
 
-    // Event listener for Close Button
-    closeButton.addEventListener('click', () => {
-        settingsModal.style.display = 'none';
-    });
+        connectButton.disabled = tokens.length < 2 && wordInput.value.trim() === '';
+    }
 
-    // Event listener for clicking outside the modal to close it
-    window.addEventListener('click', (event) => {
-        if (event.target == settingsModal) {
-            settingsModal.style.display = 'none';
-        }
-    });
+    function renderTokens() {
+        tokenList.replaceChildren();
 
-    // Event listener for Save Settings Button
-    saveSettingsButton.addEventListener('click', () => {
-        userProvidedAPIKey = userApiKeyInput.value.trim();
-        const newOpenAIKey = document.getElementById('openai-api-key').value.trim();
-        debugMode = document.getElementById('debug-mode').checked;
-        
-        // Update debug output visibility
-        document.getElementById('debug-output').style.display = debugMode ? 'block' : 'none';
-        
-        if (userProvidedAPIKey !== '') {
-            merriamWebsterAPIKey = userProvidedAPIKey;
-        }
-        
-        // Only update OpenAI key if a new one is provided
-        if (newOpenAIKey !== '') {
-            openAIKey = newOpenAIKey;
-            localStorage.setItem('openAIKey', openAIKey); // Save to localStorage
-        }
-        
-        settingsModal.style.display = 'none';
-        userApiKeyInput.value = '';
-        document.getElementById('openai-api-key').value = '';
-    });
-
-    // Event listener for the search button
-    searchButton.addEventListener('click', () => {
-        const query = searchInput.value.trim();
-        if (query !== '') {
-            processInput(query);
-        }
-    });
-
-    // Event listener for pressing 'Enter' key in the input
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const query = searchInput.value.trim();
-            if (query !== '') {
-                processInput(query);
-            }
-        }
-    });
-
-    // Event listener for the clear button
-    clearButton.addEventListener('click', () => {
-        clearAll();
-    });
-
-    // Function to process the input
-    async function processInput(input) {
-        debugLog('Processing input', { input, selectedAPI });
-        const tokens = input.split(/\s+/);
-        console.log('Processing input tokens:', tokens);
-        
-        // Clear UI but keep the synonym mappings
-        tilesContainer.innerHTML = ''; // Clear existing tiles
-        tokensContainer.innerHTML = ''; // Clear existing tokens
-        tokenColorMap = {}; // Reset token-color mapping
-        usedColors = 0; // Reset color usage
-
-        // Assign colors and display tokens
-        tokens.forEach(token => {
-            assignColorToToken(token);
-            displayToken(token);
+        tokens.forEach((word, index) => {
+            const token = document.createElement('button');
+            token.type = 'button';
+            token.className = 'token';
+            token.textContent = word;
+            token.setAttribute('aria-label', `Edit ${word}`);
+            token.addEventListener('click', () => editToken(index));
+            tokenList.appendChild(token);
         });
 
-        // Only fetch synonyms for new words
-        const newTokens = tokens.filter(token => !searchedWords.has(token.toLowerCase()));
-        console.log('New tokens to search:', newTokens);
-
-        // Fetch synonyms for new tokens in parallel
-        const fetchPromises = newTokens.map(token => fetchSynonyms(token));
-        await Promise.all(fetchPromises);
-
-        // Add new tokens to searched set
-        newTokens.forEach(token => searchedWords.add(token.toLowerCase()));
-
-        // After all synonyms are fetched, create tiles using complete synonymMap
-        createSynonymTiles();
+        updateInputState();
     }
 
-    // Function to assign a unique color to each token
-    function assignColorToToken(token) {
-        const tokenLower = token.toLowerCase();
-        if (!tokenColorMap[tokenLower]) { // Case-insensitive
-            tokenColorMap[tokenLower] = colorPalette[usedColors % colorPalette.length];
-            usedColors++;
+    function editToken(index) {
+        const word = tokens[index];
+        if (activePath) {
+            resetExperience({ keepFocus: true });
+        } else {
+            tokens.splice(index, 1);
+            renderTokens();
+        }
+        wordInput.value = word;
+        wordInput.focus();
+        wordInput.setSelectionRange(word.length, word.length);
+        updateInputState();
+    }
+
+    function commitWord(rawValue, { autoConnect = true } = {}) {
+        const word = normalizeWord(rawValue);
+
+        if (!word) return false;
+        if (!isValidWord(word)) {
+            showError('Use one word at a time; hyphens and apostrophes are okay.');
+            return false;
+        }
+        if (tokens.length >= 2) {
+            showError('Two words are enough for one connection.');
+            return false;
+        }
+        if (tokens.some(token => token.toLocaleLowerCase() === word.toLocaleLowerCase())) {
+            showError('Choose two different words.');
+            return false;
+        }
+
+        clearError();
+        tokens.push(word);
+        wordInput.value = '';
+        renderTokens();
+
+        if (tokens.length === 2 && autoConnect) {
+            startConnection();
+        }
+        return true;
+    }
+
+    function pathFor(start, end) {
+        const startLower = start.toLocaleLowerCase();
+        const endLower = end.toLocaleLowerCase();
+        const directKey = `${startLower}|${endLower}`;
+        const reverseKey = `${endLower}|${startLower}`;
+
+        if (mockPaths.has(directKey)) {
+            return mockPaths.get(directKey);
+        }
+        if (mockPaths.has(reverseKey)) {
+            const match = mockPaths.get(reverseKey);
+            return { ...match, nodes: [...match.nodes].reverse() };
+        }
+
+        return {
+            nodes: [start, 'connection', end],
+            mode: 'mock'
+        };
+    }
+
+    function graphSettings() {
+        if (!localMode) return null;
+        try {
+            if (localStorage.getItem('in-between-connection-strategy') !== 'graph') return null;
+            const stored = localStorage.getItem('in-between-graph-settings') ||
+                sessionStorage.getItem('in-between-graph-settings');
+            return JSON.parse(stored) || null;
+        } catch {
+            return null;
         }
     }
 
-    // Function to display tokens as colored labels
-    function displayToken(token) {
-        const tokenDiv = document.createElement('div');
-        tokenDiv.classList.add('token');
-        tokenDiv.style.backgroundColor = tokenColorMap[token.toLowerCase()];
-        tokenDiv.textContent = token;
-        tokensContainer.appendChild(tokenDiv);
+    function enumerateNeighborhoodTraces(neighborhood) {
+        const root = { word: neighborhood.root, key: neighborhood.root.toLocaleLowerCase() };
+        const traces = [{ key: root.key, depth: 0, rank: 0, trace: [root] }];
+        const firstLevel = new Map();
+        const secondLevel = new Map();
+
+        neighborhood.level_1.forEach((word, index) => {
+            const node = { word, key: word.toLocaleLowerCase() };
+            const entry = { key: node.key, depth: 1, rank: index, trace: [root, node] };
+            traces.push(entry);
+            if (!firstLevel.has(node.key)) firstLevel.set(node.key, []);
+            firstLevel.get(node.key).push(entry);
+        });
+        neighborhood.level_2.forEach((group, groupIndex) => {
+                const parents = firstLevel.get(group.parent.toLocaleLowerCase()) || [];
+            parents.forEach(parent => {
+                group.children.forEach((word, childIndex) => {
+                    const node = { word, key: word.toLocaleLowerCase() };
+                    const entry = {
+                        key: node.key,
+                        depth: 2,
+                        rank: groupIndex * 20 + childIndex,
+                        trace: [...parent.trace, node]
+                    };
+                    traces.push(entry);
+                    if (!secondLevel.has(node.key)) secondLevel.set(node.key, []);
+                    secondLevel.get(node.key).push(entry);
+                });
+            });
+        });
+        (neighborhood.level_3 || []).forEach((group, groupIndex) => {
+            const parents = secondLevel.get(group.parent.toLocaleLowerCase()) || [];
+            parents.forEach(parent => {
+                group.children.forEach((word, childIndex) => {
+                    const node = { word, key: word.toLocaleLowerCase() };
+                    traces.push({
+                        key: node.key,
+                        depth: 3,
+                        rank: groupIndex * 20 + childIndex,
+                        trace: [...parent.trace, node]
+                    });
+                });
+            });
+        });
+        return traces;
     }
 
-    // Function to fetch synonyms using the selected API
-    async function fetchSynonyms(word) {
-        console.log(`Fetching synonyms for: "${word}" using ${selectedAPI} API`);
-        try {
-            let data = [];
-            if (selectedAPI === 'datamuse') {
-                data = await fetchDatamuseSynonyms(word);
-            } else if (selectedAPI === 'merriam-webster') {
-                data = await fetchMerriamWebsterSynonyms(word);
-            } else if (selectedAPI === 'openai') {
-                data = await fetchOpenAISynonyms(word);
-            }
+    function findNeighborhoodPaths(left, right, preferredIntermediates) {
+        const rightByWord = new Map();
+        enumerateNeighborhoodTraces(right).forEach(trace => {
+            if (!rightByWord.has(trace.key)) rightByWord.set(trace.key, []);
+            rightByWord.get(trace.key).push(trace);
+        });
+        const uniqueRoutes = new Map();
 
-            if (data.length === 0) {
-                console.log(`No synonyms found for "${word}"`);
+        enumerateNeighborhoodTraces(left).forEach(leftTrace => {
+            (rightByWord.get(leftTrace.key) || []).forEach(rightTrace => {
+                const intermediates = leftTrace.depth + rightTrace.depth - 1;
+                if (intermediates < 1 || intermediates > 5) return;
+                const trace = [...leftTrace.trace, ...rightTrace.trace.slice(0, -1).reverse()];
+                const keys = trace.map(node => node.key);
+                if (new Set(keys).size !== keys.length) return;
+                const routeKey = keys.join('|');
+                if (uniqueRoutes.has(routeKey)) return;
+                const nodes = trace.map(node => node.word);
+                uniqueRoutes.set(routeKey, {
+                    nodes,
+                    edges: nodes.slice(0, -1).map((from, index) => ({
+                        from,
+                        to: nodes[index + 1],
+                        relationship: 'related',
+                        shared_sense: ''
+                    })),
+                    match: leftTrace.key,
+                    intermediates,
+                    distance: Math.abs(intermediates - preferredIntermediates),
+                    rank: leftTrace.rank + rightTrace.rank
+                });
+            });
+        });
+        return [...uniqueRoutes.values()].sort((a, b) =>
+            a.distance - b.distance || a.rank - b.rank ||
+            b.intermediates - a.intermediates || a.match.localeCompare(b.match)
+        );
+    }
+
+    async function connectFromNeighborhoods(start, end, apiKey, settings, signal) {
+        const requestSettings = {
+            breadth: settings.breadth,
+            depth: settings.depth,
+            model: settings.model,
+            reasoning: settings.reasoning,
+            maxOutputTokens: settings.maxOutputTokens,
+            prompt: settings.prompt
+        };
+        const request = async word => {
+            const response = await fetch('/api/neighborhood', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ apiKey, word, ...requestSettings }),
+                signal
+            });
+            const body = await response.json();
+            if (!response.ok) throw new Error(body.error?.message || `Neighborhood request failed (${response.status}).`);
+            return body;
+        };
+        const started = performance.now();
+        const [left, right] = await Promise.all([request(start), request(end)]);
+        const preferredIntermediates = Number(settings.preferredIntermediates);
+        const matches = findNeighborhoodPaths(
+            left.neighborhood,
+            right.neighborhood,
+            Number.isFinite(preferredIntermediates) ? preferredIntermediates : 3
+        );
+        const match = matches[0];
+        const latency = Math.round(performance.now() - started);
+        try {
+            localStorage.setItem('in-between-last-prototype-graph', JSON.stringify({
+                start,
+                end,
+                settings: {
+                    ...requestSettings,
+                    preferredIntermediates: Number.isFinite(preferredIntermediates) ? preferredIntermediates : 3
+                },
+                left,
+                right,
+                latency,
+                capturedAt: new Date().toISOString()
+            }));
+        } catch {
+            // The connection result should still render if local inspection storage is unavailable.
+        }
+        return match ? {
+            status: 'path',
+            nodes: match.nodes,
+            edges: match.edges,
+            latency,
+            strategy: 'neighborhood'
+        } : {
+            status: 'no_path',
+            nodes: [],
+            edges: [],
+            latency,
+            strategy: 'neighborhood'
+        };
+    }
+
+    async function startConnection() {
+        if (tokens.length !== 2) return;
+
+        if (mockMode) {
+            const path = pathFor(tokens[0], tokens[1]);
+            activePath = {
+                ...path,
+                nodes: path.nodes.map((node, index) => {
+                    if (index === 0) return tokens[0];
+                    if (index === path.nodes.length - 1) return tokens[1];
+                    return node;
+                })
+            };
+            activeEdges = [];
+            experience.dataset.state = 'result';
+            renderPath(activePath, true);
+            wordInput.blur();
+            return;
+        }
+
+        const apiKey = localMode ? sessionStorage.getItem('in-between-openai-key') || '' : '';
+        if (localMode && !apiKey) {
+            showMissingKeyError();
+            return;
+        }
+
+        const start = tokens[0];
+        const end = tokens[1];
+        const settings = graphSettings();
+        const thisRequest = ++requestVersion;
+        requestController = new AbortController();
+        abortReason = '';
+        activeEdges = [];
+        activePath = { nodes: [start, end], mode: 'searching' };
+        experience.dataset.state = 'loading';
+        renderPath(activePath, true);
+        setLoading(true);
+        wordInput.blur();
+        timeoutId = window.setTimeout(() => {
+            abortReason = 'timeout';
+            requestController?.abort();
+        }, 30000);
+
+        try {
+            let data;
+            if (settings?.enabled) {
+                data = await connectFromNeighborhoods(start, end, apiKey, settings, requestController.signal);
+            } else {
+                const response = await fetch('/api/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(localMode ? { start, end, apiKey } : { start, end }),
+                    signal: requestController.signal
+                });
+                data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error?.message || `Connection failed (${response.status}).`);
+                }
+            }
+            if (thisRequest !== requestVersion) return;
+
+            if (data.status === 'no_path') {
+                activePath = {
+                    nodes: [start, end],
+                    mode: 'no_path',
+                    strategy: data.strategy || 'path'
+                };
+                activeEdges = [];
+                experience.dataset.state = 'result';
+                renderPath(activePath, true);
                 return;
             }
 
-            mapSynonyms(word, data);
+            activePath = {
+                nodes: data.nodes,
+                mode: 'live',
+                latency: data.latency,
+                strategy: data.strategy || 'path'
+            };
+            activeEdges = data.edges;
+            experience.dataset.state = 'result';
+            renderPath(activePath, true);
         } catch (error) {
-            console.error(error);
-            displayError(`Failed to fetch synonyms for "${word}": ${error.message}`);
+            if (thisRequest !== requestVersion) return;
+            requestController?.abort();
+            let message = error.message;
+            if (error.name === 'AbortError') {
+                message = abortReason === 'timeout' ?
+                    'The search took too long. Try again.' : 'Search canceled.';
+            }
+            activePath = { nodes: [start, end], mode: 'error', message };
+            activeEdges = [];
+            experience.dataset.state = 'result';
+            renderPath(activePath, false);
+        } finally {
+            if (thisRequest === requestVersion) {
+                window.clearTimeout(timeoutId);
+                timeoutId = null;
+                requestController = null;
+                abortReason = '';
+                setLoading(false);
+            }
         }
     }
 
-    // Function to fetch synonyms from Datamuse API
-    async function fetchDatamuseSynonyms(word) {
-        const response = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}&max=10`);
-        if (!response.ok) {
-            throw new Error(`Datamuse API Error for "${word}": ${response.statusText}`);
-        }
-        const data = await response.json();
-        debugLog(`Datamuse API Response for "${word}"`, data);
-        console.log(`Datamuse synonyms for "${word}":`, data);
-        return data.map(item => item.word);
+    function resetExperience({ keepFocus = false } = {}) {
+        requestVersion++;
+        abortRequest('superseded');
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+        requestController = null;
+        abortReason = '';
+        tokens = [];
+        activePath = null;
+        activeEdges = [];
+        experience.dataset.state = 'idle';
+        strandCanvas.replaceChildren();
+        wordLayer.replaceChildren();
+        transcript.replaceChildren();
+        pathMeta.textContent = '';
+        clearError();
+        setLoading(false);
+        renderTokens();
+        if (keepFocus) wordInput.focus();
     }
 
-    // Function to fetch synonyms from Merriam-Webster Thesaurus API
-    async function fetchMerriamWebsterSynonyms(word) {
-        const response = await fetch(`https://www.dictionaryapi.com/api/v3/references/thesaurus/json/${encodeURIComponent(word)}?key=${merriamWebsterAPIKey}`);
-        if (!response.ok) {
-            throw new Error(`Merriam-Webster API Error for "${word}": ${response.statusText}`);
-        }
-        const data = await response.json();
-        debugLog(`Merriam-Webster API Response for "${word}"`, data);
-        console.log(`Merriam-Webster synonyms for "${word}":`, data);
+    function interpolateColor(progress, alpha = 1) {
+        const values = colors.start.map((channel, index) => {
+            return Math.round(channel + (colors.end[index] - channel) * progress);
+        });
+        return `rgba(${values.join(', ')}, ${alpha})`;
+    }
 
-        // Merriam-Webster API may return suggestions if the word is not found
-        if (typeof data[0] === 'string') {
-            console.log(`No direct synonyms found for "${word}". Suggestions:`, data);
-            return [];
-        }
+    function createPositions(count, width, height, mobile) {
+        const positions = [];
+        const edgePadding = mobile ? Math.min(82, height * 0.14) : Math.min(135, width * 0.11);
 
-        // Extract synonyms from the API response
-        let synonyms = [];
-        data.forEach(entry => {
-            if (entry.meta && entry.meta.syns) {
-                entry.meta.syns.forEach(synSet => {
-                    synonyms = synonyms.concat(synSet);
+        for (let index = 0; index < count; index++) {
+            const progress = count === 1 ? 0.5 : index / (count - 1);
+            const middleWeight = Math.sin(progress * Math.PI);
+            const alternating = index % 2 === 0 ? -1 : 1;
+
+            if (mobile) {
+                positions.push({
+                    x: width / 2 + alternating * middleWeight * Math.min(58, width * 0.14),
+                    y: edgePadding + progress * (height - edgePadding * 2)
+                });
+            } else {
+                positions.push({
+                    x: edgePadding + progress * (width - edgePadding * 2),
+                    y: height / 2 + alternating * middleWeight * Math.min(88, height * 0.18)
                 });
             }
-        });
-
-        // Remove duplicates and limit to 10 synonyms
-        synonyms = [...new Set(synonyms)].slice(0, 10);
-        console.log(`Extracted Merriam-Webster synonyms for "${word}":`, synonyms);
-        return synonyms;
-    }
-
-    // Function to fetch synonyms from OpenAI API
-    async function fetchOpenAISynonyms(word) {
-        if (!openAIKey) {
-            throw new Error('Please add your OpenAI API key in the settings (click the gear icon)');
         }
+        return positions;
+    }
 
-        try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openAIKey}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-3.5-turbo",
-                    messages: [{
-                        role: "user",
-                        content: `Generate exactly 10 synonyms for the word "${word}". Respond with only the synonyms as a comma-separated list, no other text.`
-                    }]
-                })
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Invalid OpenAI API key. Please check your API key in settings.');
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(`OpenAI API Error (${response.status}): ${errorData.error?.message || response.statusText}`);
-                }
-            }
-
-            const data = await response.json();
-            debugLog(`OpenAI API Response for "${word}"`, data);
-            
-            const synonymString = data.choices[0].message.content;
-            const synonyms = synonymString.split(',').map(s => s.trim()).slice(0, 10);
-            return synonyms;
-        } catch (error) {
-            debugLog(`OpenAI API Error for "${word}"`, error);
-            if (error.message.includes('API key')) {
-                // Clear the invalid API key
-                openAIKey = '';
-            }
-            throw error;
+    function edgePath(from, to, mobile) {
+        if (mobile) {
+            const controlY = (from.y + to.y) / 2;
+            return `M ${from.x} ${from.y} C ${from.x} ${controlY}, ${to.x} ${controlY}, ${to.x} ${to.y}`;
         }
+        const controlX = (from.x + to.x) / 2;
+        return `M ${from.x} ${from.y} C ${controlX} ${from.y}, ${controlX} ${to.y}, ${to.x} ${to.y}`;
     }
 
-    // Function to map synonyms to their associated tokens
-    function mapSynonyms(originalWord, synonyms) {
-        const originalWordLower = originalWord.toLowerCase();
-        synonyms.forEach(syn => {
-            const synLower = syn.toLowerCase();
-            if (!synonymMap[synLower]) {
-                synonymMap[synLower] = new Set();
+    function revealDelay(index, total, type) {
+        const lastIndex = type === 'edge' ? total - 2 : total - 1;
+        const wave = Math.min(index, lastIndex - index);
+        const base = type === 'edge' ? 0.34 : 0.12;
+        return `${base + wave * 0.58}s`;
+    }
+
+    function renderPath(path, animate) {
+        const bounds = constellation.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+
+        const mobile = window.matchMedia('(max-width: 700px)').matches;
+        const positions = createPositions(path.nodes.length, bounds.width, bounds.height, mobile);
+        const namespace = 'http://www.w3.org/2000/svg';
+
+        strandCanvas.replaceChildren();
+        wordLayer.replaceChildren();
+        transcript.replaceChildren();
+        strandCanvas.setAttribute('viewBox', `0 0 ${bounds.width} ${bounds.height}`);
+
+        const defs = document.createElementNS(namespace, 'defs');
+        strandCanvas.appendChild(defs);
+
+        const showStrand = !['no_path', 'error'].includes(path.mode);
+        if (showStrand) positions.slice(0, -1).forEach((position, index) => {
+            const gradient = document.createElementNS(namespace, 'linearGradient');
+            const gradientId = `strand-gradient-${index}`;
+            gradient.id = gradientId;
+            gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+            gradient.setAttribute('x1', position.x);
+            gradient.setAttribute('y1', position.y);
+            gradient.setAttribute('x2', positions[index + 1].x);
+            gradient.setAttribute('y2', positions[index + 1].y);
+
+            const startStop = document.createElementNS(namespace, 'stop');
+            startStop.setAttribute('offset', '0%');
+            startStop.setAttribute('stop-color', interpolateColor(index / (positions.length - 1)));
+            gradient.appendChild(startStop);
+
+            const endStop = document.createElementNS(namespace, 'stop');
+            endStop.setAttribute('offset', '100%');
+            endStop.setAttribute('stop-color', interpolateColor((index + 1) / (positions.length - 1)));
+            gradient.appendChild(endStop);
+            defs.appendChild(gradient);
+
+            const strand = document.createElementNS(namespace, 'path');
+            strand.classList.add('strand');
+            if (!animate) strand.classList.add('no-animation');
+            strand.setAttribute('d', edgePath(position, positions[index + 1], mobile));
+            strand.setAttribute('stroke', `url(#${gradientId})`);
+            strand.style.setProperty('--delay', animate ? revealDelay(index, positions.length, 'edge') : '0s');
+            strand.style.setProperty('--strand-glow', interpolateColor((index + 0.5) / (positions.length - 1), 0.55));
+            strandCanvas.appendChild(strand);
+
+            const length = strand.getTotalLength();
+            strand.style.strokeDasharray = `${length}`;
+            strand.style.setProperty('--path-length', `${animate ? length : 0}`);
+        });
+
+        path.nodes.forEach((word, index) => {
+            const progress = index / (path.nodes.length - 1);
+            const node = document.createElement('div');
+            node.className = 'word-node';
+            if (!animate) node.classList.add('no-animation');
+            if (index === 0 || index === path.nodes.length - 1) {
+                node.classList.add('is-anchor');
             }
-            synonymMap[synLower].add(originalWordLower);
+            node.style.left = `${positions[index].x}px`;
+            node.style.top = `${positions[index].y}px`;
+            node.style.setProperty('--node-color', interpolateColor(progress));
+            node.style.setProperty('--node-glow', interpolateColor(progress, 0.32));
+            node.style.setProperty('--delay', animate ? revealDelay(index, path.nodes.length, 'node') : '0s');
+            node.style.setProperty('--breathe-delay', `${-index * 0.9}s`);
+
+            const inner = document.createElement('span');
+            inner.className = 'word-node-inner';
+            inner.textContent = word;
+            node.appendChild(inner);
+            wordLayer.appendChild(node);
+
+            const transcriptItem = document.createElement('li');
+            transcriptItem.textContent = word;
+            transcript.appendChild(transcriptItem);
         });
-        console.log(`Mapped synonyms for "${originalWord}":`, synonyms);
-    }
 
-    // Function to create synonym tiles based on the synonymMap
-    function createSynonymTiles() {
-        // Iterate through synonymMap to create tiles
-        Object.keys(synonymMap).forEach(syn => {
-            const associatedTokens = Array.from(synonymMap[syn]);
-            console.log(`Creating tile for synonym "${syn}" associated with tokens:`, associatedTokens);
-            if (associatedTokens.length === 1) {
-                // Single token synonym
-                const token = associatedTokens[0];
-                const color = tokenColorMap[token];
-                const tile = createTile(syn, false, [color]);
-                tilesContainer.appendChild(tile);
-            } else if (associatedTokens.length > 1) {
-                // Common synonym
-                const colors = associatedTokens.map(token => tokenColorMap[token]);
-                console.log(`Synonym "${syn}" is common to colors:`, colors);
-                const tile = createTile(syn, false, colors);
-                tilesContainer.appendChild(tile);
-            }
-        });
-    }
-
-    // Function to create a tile element
-    function createTile(word, isNoSyn = false, colors = []) {
-        const tile = document.createElement('div');
-        tile.classList.add('tile');
-
-        if (isNoSyn) {
-            tile.classList.add('no-synonym');
-            tile.textContent = word;
-        } else if (colors.length === 1) {
-            // Single color
-            tile.style.backgroundColor = colors[0];
-            tile.textContent = word;
-            tile.addEventListener('click', () => {
-                addWordToSearch(word);
-            });
-        } else if (colors.length > 1) {
-            // Multiple colors - create a split gradient
-            const gradient = generateGradient(colors);
-            tile.style.background = gradient;
-            tile.textContent = word;
-            tile.addEventListener('click', () => {
-                addWordToSearch(word);
-            });
-        }
-
-        return tile;
-    }
-
-    // Function to generate linear-gradient CSS string based on colors
-    function generateGradient(colors) {
-        const segmentPercentage = 100 / colors.length;
-        let gradientString = 'linear-gradient(to right';
-        colors.forEach((color, index) => {
-            const start = index * segmentPercentage;
-            const end = (index + 1) * segmentPercentage;
-            gradientString += `, ${color} ${start}%, ${color} ${end}%`;
-        });
-        gradientString += ')';
-        console.log(`Generated gradient for colors [${colors.join(', ')}]:`, gradientString);
-        return gradientString;
-    }
-
-    // Function to add a word to the search input and re-fetch synonyms
-    function addWordToSearch(word) {
-        const currentInput = searchInput.value.trim();
-        const words = currentInput.split(/\s+/).map(w => w.toLowerCase());
-        if (!words.includes(word.toLowerCase())) {
-            searchInput.value = currentInput === '' ? word : `${currentInput} ${word}`;
-            processInput(searchInput.value);
+        if (path.mode === 'searching') {
+            pathMeta.textContent = 'Searching from both words';
+        } else if (path.mode === 'live') {
+            const prefix = path.strategy === 'neighborhood' ? 'Neighborhood match' : 'Connected';
+            pathMeta.textContent = path.latency ? `${prefix} in ${(path.latency / 1000).toFixed(1)} seconds` : prefix;
+        } else if (path.mode === 'no_path') {
+            pathMeta.textContent = path.strategy === 'neighborhood' ?
+                'No neighborhood overlap found. Try another pair.' : 'No strict path found. Try another pair.';
+        } else if (path.mode === 'error') {
+            pathMeta.textContent = path.message;
+        } else if (path.mode === 'scenic') {
+            pathMeta.innerHTML = 'Mock path <span aria-hidden="true">&middot;</span> <span class="scenic">taking the scenic route</span>';
+        } else if (path.mode === 'synonym') {
+            pathMeta.textContent = 'Mock synonym path';
+        } else {
+            pathMeta.textContent = 'Mock connection - LLM not connected';
         }
     }
 
-    // Function to display error messages on the UI
-    function displayError(message) {
-        const errorTile = createTile(message, true);
-        tilesContainer.appendChild(errorTile);
-    }
+    composer.addEventListener('submit', event => {
+        event.preventDefault();
+        if (experience.dataset.state === 'loading') {
+            abortRequest('manual');
+            return;
+        }
+        if (activePath && wordInput.value.trim()) {
+            resetExperience({ keepFocus: true });
+        }
+        if (wordInput.value.trim()) {
+            commitWord(wordInput.value);
+        } else if (tokens.length === 2) {
+            startConnection();
+        }
+    });
 
-    // Function to clear the input, tokens, and tiles
-    function clearAll() {
-        searchInput.value = '';
-        tokensContainer.innerHTML = '';
-        tilesContainer.innerHTML = '';
-        tokenColorMap = {};
-        synonymMap = {};
-        usedColors = 0;
-        searchedWords.clear();
-        console.log('Cleared all tokens and tiles.');
-        // Note: We're not clearing the openAIKey or localStorage here
-    }
+    wordInput.addEventListener('keydown', event => {
+        const commitsWord = event.key === 'Enter' || event.key === ' ';
 
-    // Add this function for debug logging
-    function debugLog(message, data) {
-        if (!debugMode) return;
-        
-        const debugContent = document.getElementById('debug-content');
-        const timestamp = new Date().toLocaleTimeString();
-        const debugMessage = `[${timestamp}] ${message}\n${JSON.stringify(data, null, 2)}\n\n`;
-        
-        debugContent.textContent = debugMessage + debugContent.textContent;
-    }
+        if (activePath && event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
+            resetExperience({ keepFocus: true });
+        }
+
+        if (commitsWord) {
+            event.preventDefault();
+            commitWord(wordInput.value);
+            return;
+        }
+
+        if (event.key === 'Backspace' && wordInput.value === '' && tokens.length > 0) {
+            event.preventDefault();
+            if (activePath) {
+                resetExperience({ keepFocus: true });
+            } else {
+                wordInput.value = tokens.pop();
+                renderTokens();
+            }
+        }
+    });
+
+    wordInput.addEventListener('input', () => {
+        clearError();
+        updateInputState();
+    });
+
+    wordInput.addEventListener('paste', event => {
+        const pasted = event.clipboardData.getData('text').trim();
+        const pastedWords = pasted.split(/\s+/).filter(Boolean);
+        if (pastedWords.length < 2) return;
+
+        event.preventDefault();
+        if (activePath) resetExperience({ keepFocus: true });
+        if (pastedWords.length > 2) {
+            showError('Paste exactly two words.');
+            return;
+        }
+
+        const firstCommitted = commitWord(pastedWords[0], { autoConnect: false });
+        if (firstCommitted) commitWord(pastedWords[1]);
+    });
+
+    examples.addEventListener('click', event => {
+        const button = event.target.closest('[data-pair]');
+        if (!button) return;
+        const pair = button.dataset.pair.split(' ');
+        resetExperience();
+        tokens = pair;
+        renderTokens();
+        startConnection();
+    });
+
+    window.addEventListener('resize', () => {
+        if (!activePath) return;
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => renderPath(activePath, false));
+    });
+
+    window.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && experience.dataset.state === 'loading') {
+            event.preventDefault();
+            abortRequest('manual');
+        }
+    });
+
+    renderTokens();
 });
